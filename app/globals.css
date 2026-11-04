@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "./styles/base.css";
+@import "./styles/staff.css";
+@import "./styles/customer.css";
+
+@theme {
+  --font-display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", sans-serif;
+  --color-ink: #0e2a22;
+  --color-ink-soft: #3e5a50;
+  --color-brand: #119977;
+  --color-brand-deep: #0b6b55;
+  --color-paper: #f6f7f2;
+  --color-mango: #f2b84b;
+}
