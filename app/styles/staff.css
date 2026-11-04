@@ -4229,3 +4229,34 @@ button.side-link {
     display: none;
   }
 }
+
+.app-loading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.app-loading-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: var(--green-deep);
+  color: var(--paper);
+}
+
+.app-loading-mark .icon {
+  width: 32px;
+  height: 32px;
+  fill: currentColor;
+  stroke: none;
+}

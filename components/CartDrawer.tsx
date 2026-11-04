@@ -6,6 +6,7 @@ import { Icon } from "@/components/Icon";
 import { useCustomer } from "@/components/CustomerProvider";
 import { useToast } from "@/components/ToastProvider";
 import { KANTIN_DATA } from "@/lib/data";
+import { localized, orderItemSummary } from "@/lib/order-utils";
 import { useLanguage } from "@/lib/i18n";
 
 export function CartDrawer() {
@@ -75,21 +76,22 @@ export function CartDrawer() {
               <div className="cart-list">
                 {cart.map((line) => {
                   const item = KANTIN_DATA.menuById(line.menuId);
-                  if (!item) return null;
-                  const options = KANTIN_DATA.orderItemSummary(line, lang);
+                  const name = line.name || item?.name;
+                  const price = Number(line.price ?? item?.price ?? 0);
+                  const options = (line.optionLabels?.length ? orderItemSummary({ optionLabels: line.optionLabels }, lang) : item ? KANTIN_DATA.orderItemSummary(line, lang) : "");
                   return (
                     <div className="cart-item" key={line.lineId}>
                       <div className="cart-thumb">
                         <img
-                          src={item.image}
-                          alt={KANTIN_DATA.localized(item.name, lang)}
+                          src={line.image || item?.image || "/assets/menu/placeholder.webp"}
+                          alt={localized(name, lang)}
                           width={800}
                           height={800}
                           decoding="async"
                         />
                       </div>
                       <div className="cart-item-copy">
-                        <h3>{KANTIN_DATA.localized(item.name, lang)}</h3>
+                        <h3>{localized(name, lang)}</h3>
                         {options ? <p>{options}</p> : null}
                         {line.note ? <p className="cart-note">{t("cart.note")}: {line.note}</p> : null}
                         <div className="cart-item-bottom">
@@ -111,7 +113,7 @@ export function CartDrawer() {
                             </button>
                           </div>
                           <span className="cart-item-price">
-                            {KANTIN_DATA.formatIDR(item.price * line.qty)}
+                            {KANTIN_DATA.formatIDR(price * line.qty)}
                           </span>
                         </div>
                       </div>

@@ -4,6 +4,10 @@ export type CartLine = {
   qty: number;
   options: string[];
   note: string;
+  name?: { id: string; en: string };
+  image?: string;
+  price?: number;
+  optionLabels?: { id: string; en: string }[];
 };
 
 export type OrderContext = {
@@ -11,26 +15,8 @@ export type OrderContext = {
   table: number | null;
 };
 
-export type ActiveOrder = {
-  code: string;
-  customer: string;
-  type: "dine-in" | "takeaway";
-  table: number | null;
-  items: { menuId: string; qty: number; options: string[]; note: string }[];
-  total: number;
-  payment: "QRIS" | "Cash";
-  paymentStatus: "pending" | "paid" | "expired" | "cancelled";
-  orderStatus: "new" | "cooking" | "ready" | "cancelled";
-  source: "QR" | "POS";
-  createdAt: string;
-  expiresAt: string;
-  paidAt?: string | null;
-  paymentCode?: string | null;
-};
-
 export const CART_KEY = "kantin-cart";
 export const CONTEXT_KEY = "kantin-context";
-export const ORDER_KEY = "kantin-active-order";
 
 export function readCart(): CartLine[] {
   try {
@@ -74,36 +60,35 @@ export function resolveContextFromLocation(): OrderContext {
   return readContext() || { type: "dine-in", table: 3 };
 }
 
-export function readActiveOrder(): ActiveOrder | null {
+export type ActiveOrderRef = {
+  id: string;
+  code: string;
+  token: string;
+};
+
+export const ACTIVE_ORDER_REF_KEY = "kantin-active-order-ref";
+
+export function readActiveOrderRef(): ActiveOrderRef | null {
   try {
-    const value = JSON.parse(localStorage.getItem(ORDER_KEY) || "null");
-    return value && value.code ? value : null;
+    const value = JSON.parse(localStorage.getItem(ACTIVE_ORDER_REF_KEY) || "null");
+    return value && value.token ? value : null;
   } catch {
     return null;
   }
 }
 
-export function saveActiveOrder(order: ActiveOrder) {
+export function saveActiveOrderRef(order: ActiveOrderRef) {
   try {
-    localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+    localStorage.setItem(ACTIVE_ORDER_REF_KEY, JSON.stringify(order));
   } catch {
     // Storage may be unavailable.
   }
 }
 
-export function clearActiveOrder() {
+export function clearActiveOrderRef() {
   try {
-    localStorage.removeItem(ORDER_KEY);
+    localStorage.removeItem(ACTIVE_ORDER_REF_KEY);
   } catch {
     // Storage may be unavailable.
   }
-}
-
-export function createOrderCode() {
-  return `A-${Math.floor(100 + Math.random() * 900)}`;
-}
-
-export function createPaymentCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
 }

@@ -5,15 +5,17 @@ import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { useCustomer } from "@/components/CustomerProvider";
 import { useToast } from "@/components/ToastProvider";
-import { KANTIN_DATA } from "@/lib/data";
+import { formatIDR } from "@/lib/format";
+import type { MenuItem } from "@/lib/api-types";
+import { localized, optionLabelsFor } from "@/lib/order-utils";
+import { useMenuData } from "@/lib/use-menu";
 import { useLanguage } from "@/lib/i18n";
-
-type MenuItem = (typeof KANTIN_DATA.menu)[number];
 
 export default function OrderPage() {
   const { t, lang } = useLanguage();
   const toast = useToast();
   const { cart, cartCount, cartTotal, addToCart, updateLine, removeLine, openCart } = useCustomer();
+  const { menu, categories: menuCategories, loading: menuLoading, error: menuError, reload: reloadMenu } = useMenuData();
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null);
@@ -44,17 +46,17 @@ export default function OrderPage() {
     window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
   }, [openCart]);
 
-  const menuName = (item: MenuItem) => KANTIN_DATA.localized(item.name, lang);
-  const menuDesc = (item: MenuItem) => KANTIN_DATA.localized(item.desc, lang);
+  const menuName = (item: MenuItem) => localized(item.name, lang);
+  const menuDesc = (item: MenuItem) => localized(item.desc, lang);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return KANTIN_DATA.menu.filter((item) => {
+    return menu.filter((item) => {
       if (activeCategory !== "all" && item.category !== activeCategory) return false;
       if (!query) return true;
       return `${menuName(item)} ${menuDesc(item)}`.toLowerCase().includes(query);
     });
-  }, [activeCategory, search, lang]);
+  }, [activeCategory, search, lang, menu]);
 
   const qtyFor = (menuId: string) =>
     cart.filter((line) => line.menuId === menuId).reduce((sum, line) => sum + line.qty, 0);
@@ -91,7 +93,16 @@ export default function OrderPage() {
   };
 
   const addItem = (item: MenuItem, qty: number, options: string[], note: string) => {
-    addToCart({ menuId: item.id, qty, options, note });
+    addToCart({
+      menuId: item.id,
+      qty,
+      options,
+      note,
+      name: item.name,
+      image: item.image,
+      price: item.price,
+      optionLabels: optionLabelsFor(item, options),
+    });
     toast(t("order.added"));
   };
 
@@ -150,7 +161,7 @@ export default function OrderPage() {
     closeCustom();
   };
 
-  const categories = [{ id: "all", name: { id: "Semua", en: "All" } }, ...KANTIN_DATA.categories];
+  const categories = [{ id: "all", name: { id: "Semua", en: "All" } }, ...menuCategories];
 
   return (
     <>
@@ -185,7 +196,7 @@ export default function OrderPage() {
                   key={category.id}
                   onClick={() => setActiveCategory(category.id)}
                 >
-                  {KANTIN_DATA.localized(category.name, lang)}
+                  {localized(category.name, lang)}
                 </button>
               ))}
             </div>
@@ -193,7 +204,21 @@ export default function OrderPage() {
         </div>
 
         <div className="menu-list">
-          {filtered.length === 0 ? (
+          {menuLoading ? (
+            <div className="empty-state">
+              <span className="empty-icon"><Icon name="refresh" /></span>
+              <h2>{lang === "id" ? "Memuat menu…" : "Loading menu…"}</h2>
+            </div>
+          ) : menuError ? (
+            <div className="empty-state">
+              <span className="empty-icon"><Icon name="alert" /></span>
+              <h2>{lang === "id" ? "Menu gagal dimuat" : "Could not load menu"}</h2>
+              <p>{menuError}</p>
+              <button className="btn btn-primary btn-sm" type="button" onClick={() => void reloadMenu()}>
+                {lang === "id" ? "Coba lagi" : "Try again"}
+              </button>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="empty-state">
               <span className="empty-icon"><Icon name="search" /></span>
               <h2>{t("order.empty")}</h2>
@@ -217,7 +242,7 @@ export default function OrderPage() {
                     <span className="menu-title">{name}</span>
                     <span className="menu-desc">{menuDesc(item)}</span>
                     <span className="menu-price">
-                      <strong>{KANTIN_DATA.formatIDR(item.price)}</strong>
+                      <strong>{formatIDR(item.price)}</strong>
                     </span>
                   </button>
                   <div className="menu-media">
@@ -267,7 +292,7 @@ export default function OrderPage() {
               <span className="cart-bar-count">{cartCount}</span>
               <span className="cart-bar-text">
                 <small>{t("common.items", { count: cartCount })}</small>
-                <strong>{KANTIN_DATA.formatIDR(cartTotal)}</strong>
+                <strong>{formatIDR(cartTotal)}</strong>
               </span>
             </div>
             <Link className="btn" href="/checkout">
@@ -300,7 +325,7 @@ export default function OrderPage() {
             </div>
             <div className="sheet-body detail-body">
               <h2 id="detail-name">{menuName(detailItem)}</h2>
-              <span className="sheet-price">{KANTIN_DATA.formatIDR(detailItem.price)}</span>
+              <span className="sheet-price">{formatIDR(detailItem.price)}</span>
               <p className="sheet-desc">{menuDesc(detailItem)}</p>
             </div>
             <div className="sheet-footer">
@@ -340,7 +365,7 @@ export default function OrderPage() {
             <div className="sheet-head">
               <div>
                 <h2 id="custom-title">{t("order.chooseOptions")}</h2>
-                <p>{menuName(customItem)} · {KANTIN_DATA.formatIDR(customItem.price)}</p>
+                <p>{menuName(customItem)} · {formatIDR(customItem.price)}</p>
               </div>
               <button
                 className="sheet-close"
@@ -356,7 +381,7 @@ export default function OrderPage() {
                 {customItem.options.map((group) => (
                   <div className="option-group" key={group.id}>
                     <h3>
-                      {KANTIN_DATA.localized(group.label, lang)}
+                      {localized(group.label, lang)}
                       <span className="option-required">{t("order.required")}</span>
                     </h3>
                     <div className="option-choice-list">
@@ -365,7 +390,7 @@ export default function OrderPage() {
                           className={`option-choice ${selections[group.id] === choice.id ? "is-selected" : ""}`}
                           key={choice.id}
                         >
-                          <span>{KANTIN_DATA.localized(choice.label, lang)}</span>
+                          <span>{localized(choice.label, lang)}</span>
                           <input
                             type="radio"
                             name={`group-${group.id}`}

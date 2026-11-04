@@ -3,17 +3,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Icon } from "@/components/Icon";
 import { useToast } from "@/components/ToastProvider";
+import { api } from "@/lib/api-client";
+import type { AppSettings } from "@/lib/api-types";
 import { useLanguage } from "@/lib/i18n";
 
 type Tab = "profile" | "tables" | "printer" | "payment";
-
-const readJSON = <T,>(key: string, fallback: T): T => {
-  try {
-    return JSON.parse(localStorage.getItem(key) || "null") || fallback;
-  } catch {
-    return fallback;
-  }
-};
 
 export default function SettingsPage() {
   const { t, lang } = useLanguage();
@@ -25,6 +19,8 @@ export default function SettingsPage() {
   const [hours, setHours] = useState("Senin–Sabtu, 07.00–15.00");
   const [description, setDescription] = useState("Kantin lingkungan dengan rasa rumahan. Pesan dari meja, bayar caramu.");
   const [logoPreview, setLogoPreview] = useState("/assets/favicon.svg");
+  const [logoUrl, setLogoUrl] = useState("/assets/favicon.svg");
+  const [saving, setSaving] = useState<string | null>(null);
   const [width, setWidth] = useState("80");
   const [autoKitchen, setAutoKitchen] = useState(true);
   const [autoCustomer, setAutoCustomer] = useState(true);
@@ -38,47 +34,54 @@ export default function SettingsPage() {
   }, [lang]);
 
   useEffect(() => {
-    const profile = readJSON<any>("kantin-settings", null);
-    if (profile) {
-      setName(profile.name || name);
-      setTagline(profile.tagline || tagline);
-      setAddress(profile.address || address);
-      setHours(profile.hours || hours);
-      setDescription(profile.description || description);
-    }
+    api.staffSettings()
+      .then((settings) => {
+        setName(settings.name);
+        setTagline(settings.tagline);
+        setAddress(settings.address);
+        setHours(settings.hours);
+        setDescription(settings.description);
+        setLogoPreview(settings.logo || "/assets/favicon.svg");
+        setLogoUrl(settings.logo || "/assets/favicon.svg");
+        setWidth(settings.receiptWidth === "58" ? "58" : "80");
+        setAutoKitchen(settings.autoKitchen);
+        setAutoCustomer(settings.autoCustomer);
+        setEnv(settings.midtransEnvironment === "production" ? "production" : "sandbox");
+        setClientKey(settings.midtransClientKey);
+        setServerKey(settings.midtransServerKey);
+        setWebhook(settings.midtransWebhook || `${window.location.origin}/api/midtrans/webhook`);
+      })
+      .catch((error: any) => toast(error?.message || "Pengaturan gagal dimuat.", "error"));
+  }, [toast]);
+
+  const saveSettings = async (patch: Partial<AppSettings>, key: string) => {
+    setSaving(key);
     try {
-      setWidth(localStorage.getItem("kantin-receipt-width") === "58" ? "58" : "80");
-    } catch {
-      setWidth("80");
+      await api.updateSettings(patch);
+      toast(t("settings.settingsSaved"));
+    } catch (error: any) {
+      toast(error?.message || "Pengaturan gagal disimpan.", "error");
+    } finally {
+      setSaving(null);
     }
-    const printer = readJSON<any>("kantin-print-settings", { kitchen: true, customer: true });
-    setAutoKitchen(printer.kitchen !== false);
-    setAutoCustomer(printer.customer !== false);
-    const midtrans = readJSON<any>("kantin-midtrans", null);
-    if (midtrans) {
-      setEnv(midtrans.env === "production" ? "production" : "sandbox");
-      setClientKey(midtrans.client || clientKey);
-      setServerKey(midtrans.server || serverKey);
-      setWebhook(midtrans.webhook || webhook);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  };
 
   const saveProfile = (event: FormEvent) => {
     event.preventDefault();
-    localStorage.setItem("kantin-settings", JSON.stringify({ name, tagline, address, hours, description }));
-    toast(t("settings.settingsSaved"));
+    void saveSettings({ name, tagline, address, hours, description, logo: logoUrl }, "profile");
   };
 
   const savePrinter = () => {
-    localStorage.setItem("kantin-receipt-width", width);
-    localStorage.setItem("kantin-print-settings", JSON.stringify({ kitchen: autoKitchen, customer: autoCustomer }));
-    toast(t("settings.settingsSaved"));
+    void saveSettings({ receiptWidth: width as "58" | "80", autoKitchen, autoCustomer }, "printer");
   };
 
   const savePayment = () => {
-    localStorage.setItem("kantin-midtrans", JSON.stringify({ env, client: clientKey, server: serverKey, webhook }));
-    toast(t("settings.settingsSaved"));
+    void saveSettings({
+      midtransEnvironment: env as "sandbox" | "production",
+      midtransClientKey: clientKey,
+      midtransServerKey: serverKey,
+      midtransWebhook: webhook,
+    }, "payment");
   };
 
   const copyWebhook = async () => {
@@ -138,17 +141,21 @@ export default function SettingsPage() {
                     <input
                       id="profile-logo-file"
                       type="file"
-                      accept="image/svg+xml,image/png"
+                      accept="image/png,image/jpeg,image/webp"
                       onChange={(event) => {
                         const file = event.target.files?.[0];
-                        if (file) setLogoPreview(URL.createObjectURL(file));
+                        if (!file) return;
+                        setLogoPreview(URL.createObjectURL(file));
+                        void api.uploadMenuPhoto(file)
+                          .then(({ url }) => { setLogoUrl(url); setLogoPreview(url); })
+                          .catch((reason) => toast(reason?.message || "Logo gagal diunggah.", "error"));
                       }}
                     />
                   </label>
                 </div>
                 <div className="field field-full"><label htmlFor="profile-description">{t("settings.description")}</label><textarea className="textarea" id="profile-description" value={description} onChange={(event) => setDescription(event.target.value)} /></div>
               </div>
-              <div className="form-actions"><button className="btn btn-primary" type="submit">{t("settings.saveProfile")}</button></div>
+              <div className="form-actions"><button className="btn btn-primary" type="submit" disabled={saving === "profile"}>{saving === "profile" ? "..." : t("settings.saveProfile")}</button></div>
             </div>
           </section>
         </form>
@@ -230,7 +237,7 @@ export default function SettingsPage() {
                 <button className="btn btn-sm btn-outline" type="button" onClick={() => window.print()}><Icon name="printer" /><span>{t("action.printTest")}</span></button>
               </div>
             </div>
-            <div className="form-actions"><button className="btn btn-primary" type="button" onClick={savePrinter}>{t("action.save")}</button></div>
+            <div className="form-actions"><button className="btn btn-primary" type="button" onClick={savePrinter} disabled={saving === "printer"}>{saving === "printer" ? "..." : t("action.save")}</button></div>
           </div>
         </section>
       ) : null}
@@ -261,7 +268,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="settings-note"><Icon name="lock" /><span>{t("settings.serverNote")}</span></div>
-            <div className="form-actions"><button className="btn btn-primary" type="button" onClick={savePayment}>{t("settings.savePayment")}</button></div>
+            <div className="form-actions"><button className="btn btn-primary" type="button" onClick={savePayment} disabled={saving === "payment"}>{saving === "payment" ? "..." : t("settings.savePayment")}</button></div>
           </div>
         </section>
       ) : null}

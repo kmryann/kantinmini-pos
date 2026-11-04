@@ -111,7 +111,8 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     () =>
       cart.reduce((sum, line) => {
         const menu = KANTIN_DATA.menuById(line.menuId);
-        return sum + (menu ? menu.price : 0) * Number(line.qty || 0);
+        const price = Number(line.price ?? menu?.price ?? 0);
+        return sum + price * Number(line.qty || 0);
       }, 0),
     [cart],
   );

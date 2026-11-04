@@ -4,26 +4,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { useToast } from "@/components/ToastProvider";
-import { KANTIN_DATA } from "@/lib/data";
+import { api } from "@/lib/api-client";
+import type { MenuItem, Order } from "@/lib/api-types";
+import { formatIDR } from "@/lib/format";
+import { localized, optionLabelsFor } from "@/lib/order-utils";
+import { useMenuData } from "@/lib/use-menu";
 import { useLanguage } from "@/lib/i18n";
 
-type MenuItem = (typeof KANTIN_DATA.menu)[number];
 type PosLine = { lineId: string; menuId: string; qty: number; options: string[]; note: string };
-type PosOrder = {
-  code: string;
-  customer: string;
-  type: "dine-in" | "takeaway";
-  table: number | null;
-  items: { menuId: string; qty: number; options: string[]; note: string }[];
-  total: number;
-  payment: "QRIS" | "Cash";
-  paymentStatus: "pending" | "paid";
-  orderStatus: "new";
-  source: "POS";
-  createdAt: string;
-  paidAt: string | null;
-  paymentCode: null;
-};
 
 const signature = (line: Omit<PosLine, "lineId"> | PosLine) =>
   JSON.stringify({
@@ -35,6 +23,7 @@ const signature = (line: Omit<PosLine, "lineId"> | PosLine) =>
 export default function PosPage() {
   const { t, lang } = useLanguage();
   const toast = useToast();
+  const { menu, categories: menuCategories, loading: menuLoading, error: menuError, reload: reloadMenu } = useMenuData();
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [orderType, setOrderType] = useState<"dine-in" | "takeaway">("dine-in");
@@ -49,9 +38,10 @@ export default function PosPage() {
   const [optionNote, setOptionNote] = useState("");
   const [noteLineId, setNoteLineId] = useState<string | null>(null);
   const [noteValue, setNoteValue] = useState("");
-  const [qrisOrder, setQrisOrder] = useState<PosOrder | null>(null);
+  const [qrisOrder, setQrisOrder] = useState<Order | null>(null);
   const [successCode, setSuccessCode] = useState("");
   const [successOpen, setSuccessOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     document.title = "POS · Kantin Mini";
@@ -68,25 +58,25 @@ export default function PosPage() {
     return () => document.body.classList.remove("modal-open");
   }, [anyModal]);
 
-  const categories = [{ id: "all", name: { id: "Semua", en: "All" } }, ...KANTIN_DATA.categories];
+  const categories = [{ id: "all", name: { id: "Semua", en: "All" } }, ...menuCategories];
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return KANTIN_DATA.menu.filter((item) => {
+    return menu.filter((item) => {
       if (activeCategory !== "all" && item.category !== activeCategory) return false;
       if (!query) return true;
-      return `${KANTIN_DATA.localized(item.name, lang)} ${KANTIN_DATA.localized(item.desc, lang)}`
+      return `${localized(item.name, lang)} ${localized(item.desc, lang)}`
         .toLowerCase()
         .includes(query);
     });
-  }, [activeCategory, search, lang]);
+  }, [activeCategory, search, lang, menu]);
 
   const total = useMemo(
     () =>
       items.reduce((sum, line) => {
-        const item = KANTIN_DATA.menuById(line.menuId);
+        const item = menu.find((entry) => entry.id === line.menuId);
         return sum + (item ? item.price : 0) * line.qty;
       }, 0),
-    [items],
+    [items, menu],
   );
   const itemCount = items.reduce((sum, line) => sum + line.qty, 0);
   const change = Math.max(0, Number(cashReceived || 0) - total);
@@ -130,8 +120,7 @@ export default function PosPage() {
     setTable("3");
   };
 
-  const showSuccess = (order: PosOrder) => {
-    KANTIN_DATA.savePosOrder(order);
+  const showSuccess = (order: Order) => {
     setSuccessCode(order.code);
     setSuccessOpen(true);
     setOrderOpen(false);
@@ -139,43 +128,46 @@ export default function PosPage() {
     resetOrder();
   };
 
-  const submitPayment = () => {
+  const submitPayment = async () => {
     if (!items.length) return;
     if (payment === "Cash" && Number(cashReceived || 0) < total) {
       toast(t("pos.cashShort"), "error");
       return;
     }
-    const now = new Date().toISOString();
-    const order: PosOrder = {
-      code: `P-${Math.floor(100 + Math.random() * 900)}`,
-      customer: customer.trim() || t("pos.walkIn"),
-      type: orderType,
-      table: orderType === "dine-in" ? Number(table) : null,
-      items: items.map((line) => ({
-        menuId: line.menuId,
-        qty: line.qty,
-        options: line.options,
-        note: line.note,
-      })),
-      total,
-      payment,
-      paymentStatus: payment === "Cash" ? "paid" : "pending",
-      orderStatus: "new",
-      source: "POS",
-      createdAt: now,
-      paidAt: payment === "Cash" ? now : null,
-      paymentCode: null,
-    };
-    if (payment === "QRIS") {
-      setQrisOrder(order);
-      return;
+    setSubmitting(true);
+    try {
+      const order = await api.createPosOrder({
+        customer: customer.trim() || t("pos.walkIn"),
+        type: orderType,
+        table: orderType === "dine-in" ? Number(table) : null,
+        items: items.map((line) => ({
+          menuId: line.menuId,
+          qty: line.qty,
+          options: line.options,
+          note: line.note,
+        })),
+        payment,
+      });
+      if (payment === "QRIS") {
+        setQrisOrder(order);
+        return;
+      }
+      showSuccess(order);
+    } catch (error: any) {
+      toast(error?.message || "Pesanan gagal dibuat.", "error");
+    } finally {
+      setSubmitting(false);
     }
-    showSuccess(order);
   };
 
-  const simulateQris = () => {
+  const simulateQris = async () => {
     if (!qrisOrder) return;
-    showSuccess({ ...qrisOrder, paymentStatus: "paid", paidAt: new Date().toISOString() });
+    try {
+      const updated = await api.updateOrder(qrisOrder.id, "mark-paid");
+      showSuccess(updated);
+    } catch (error: any) {
+      toast(error?.message || "Pembayaran gagal diproses.", "error");
+    }
   };
 
   return (
@@ -203,41 +195,54 @@ export default function PosPage() {
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
               >
-                {KANTIN_DATA.localized(category.name, lang)}
+                {localized(category.name, lang)}
               </button>
             ))}
           </div>
           <div className="menu-grid">
-            {filtered.length === 0 ? (
+            {menuLoading ? (
+              <div className="empty-state" style={{ gridColumn: "1/-1" }}>
+                <span className="empty-icon"><Icon name="refresh" /></span>
+                <h3>{lang === "id" ? "Memuat menu…" : "Loading menu…"}</h3>
+              </div>
+            ) : menuError ? (
+              <div className="empty-state" style={{ gridColumn: "1/-1" }}>
+                <span className="empty-icon"><Icon name="alert" /></span>
+                <h3>{lang === "id" ? "Menu gagal dimuat" : "Could not load menu"}</h3>
+                <button className="btn btn-primary btn-sm" type="button" onClick={() => void reloadMenu()}>
+                  {lang === "id" ? "Coba lagi" : "Try again"}
+                </button>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="empty-state" style={{ gridColumn: "1/-1" }}>
                 <span className="empty-icon"><Icon name="search" /></span>
                 <h3>{t("menus.empty")}</h3>
               </div>
             ) : (
               filtered.map((item) => {
-                const category = KANTIN_DATA.categoryById(item.category);
+                const category = menuCategories.find((entry) => entry.id === item.category);
                 const meta = item.available
                   ? item.options.length
                     ? t("pos.customizable")
                     : category
-                      ? KANTIN_DATA.localized(category.name, lang)
+                      ? localized(category.name, lang)
                       : ""
                   : t("label.soldOut");
                 return (
                   <article className={`pos-menu-card ${item.available ? "" : "is-soldout"}`} key={item.id}>
                     <div className="pos-menu-image">
-                      <img src={item.image} alt={KANTIN_DATA.localized(item.name, lang)} width={800} height={800} decoding="async" />
+                      <img src={item.image} alt={localized(item.name, lang)} width={800} height={800} decoding="async" />
                     </div>
                     <div className="pos-menu-copy">
-                      <h3>{KANTIN_DATA.localized(item.name, lang)}</h3>
-                      <p>{KANTIN_DATA.formatIDR(item.price)}</p>
+                      <h3>{localized(item.name, lang)}</h3>
+                      <p>{formatIDR(item.price)}</p>
                       <small>{meta}</small>
                     </div>
                     <button
                       className="pos-add"
                       type="button"
                       disabled={!item.available}
-                      aria-label={`${t("action.add")} ${KANTIN_DATA.localized(item.name, lang)}`}
+                      aria-label={`${t("action.add")} ${localized(item.name, lang)}`}
                       onClick={() => {
                         if (!item.available) return;
                         if (item.options.length) openOptions(item);
@@ -327,16 +332,16 @@ export default function PosPage() {
             ) : (
               <ul className="pos-order-items">
                 {items.map((line) => {
-                  const item = KANTIN_DATA.menuById(line.menuId);
+                  const item = menu.find((entry) => entry.id === line.menuId);
                   if (!item) return null;
-                  const options = KANTIN_DATA.orderItemSummary(line, lang);
+                  const options = optionLabelsFor(item, line.options).map((label) => localized(label, lang)).join(" · ");
                   return (
                     <li className="pos-order-item" key={line.lineId}>
                       <div>
-                        <p className="pos-order-item-name">{KANTIN_DATA.localized(item.name, lang)}</p>
+                        <p className="pos-order-item-name">{localized(item.name, lang)}</p>
                         {options ? <p className="pos-order-item-meta">{options}</p> : null}
                         {line.note ? <p className="pos-order-item-meta">{t("label.notes")}: {line.note}</p> : null}
-                        <p className="pos-order-item-price">{KANTIN_DATA.formatIDR(item.price * line.qty)}</p>
+                        <p className="pos-order-item-price">{formatIDR(item.price * line.qty)}</p>
                         <button
                           className="btn btn-ghost btn-sm"
                           type="button"
@@ -377,7 +382,7 @@ export default function PosPage() {
             <div className="pos-totals">
               <div className="pos-total-row">
                 <span>{t("label.total")}</span>
-                <strong>{KANTIN_DATA.formatIDR(total)}</strong>
+                <strong>{formatIDR(total)}</strong>
               </div>
             </div>
 
@@ -413,7 +418,7 @@ export default function PosPage() {
                   </div>
                   <div className="pos-total-row">
                     <span>{t("pos.change")}</span>
-                    <strong style={{ fontSize: "0.9rem" }}>{KANTIN_DATA.formatIDR(change)}</strong>
+                    <strong style={{ fontSize: "0.9rem" }}>{formatIDR(change)}</strong>
                   </div>
                 </div>
               ) : null}
@@ -421,8 +426,8 @@ export default function PosPage() {
           </div>
 
           <div className="pos-order-foot">
-            <button className="btn btn-primary btn-block" type="button" disabled={!items.length} onClick={submitPayment}>
-              {t("pos.pay")}
+            <button className="btn btn-primary btn-block" type="button" disabled={!items.length || submitting} onClick={() => void submitPayment()}>
+              {submitting ? "..." : t("pos.pay")}
             </button>
           </div>
         </aside>
@@ -436,7 +441,7 @@ export default function PosPage() {
           document.body.classList.remove("sidebar-open");
         }}
       >
-        <span><Icon name="cart" /><strong>{KANTIN_DATA.formatIDR(total)}</strong></span>
+        <span><Icon name="cart" /><strong>{formatIDR(total)}</strong></span>
         <span>{t("pos.mobileCart")}</span>
       </button>
       <div className="pos-mobile-backdrop" onClick={() => setOrderOpen(false)} />
@@ -447,7 +452,7 @@ export default function PosPage() {
             <div className="modal-head">
               <div>
                 <h2 id="pos-options-title">{t("pos.chooseOptions")}</h2>
-                <p>{KANTIN_DATA.localized(optionItem.name, lang)} · {KANTIN_DATA.formatIDR(optionItem.price)}</p>
+                <p>{localized(optionItem.name, lang)} · {formatIDR(optionItem.price)}</p>
               </div>
               <button className="icon-btn" type="button" aria-label={t("action.close")} onClick={() => setOptionItem(null)}>
                 <Icon name="x" />
@@ -458,13 +463,13 @@ export default function PosPage() {
                 {optionItem.options.map((group) => (
                   <div className="option-group" key={group.id}>
                     <h3>
-                      {KANTIN_DATA.localized(group.label, lang)}
+                      {localized(group.label, lang)}
                       <span className="option-required" style={{ padding: "2px 6px", borderRadius: 999, background: "rgba(226,97,70,.09)", color: "#a63c2a", fontSize: ".57rem", fontWeight: 700 }}>{t("label.required")}</span>
                     </h3>
                     <div className="option-choice-list">
                       {group.choices.map((choice) => (
                         <label className={`option-choice ${optionSelections[group.id] === choice.id ? "is-selected" : ""}`} key={choice.id}>
-                          <span>{KANTIN_DATA.localized(choice.label, lang)}</span>
+                          <span>{localized(choice.label, lang)}</span>
                           <input
                             type="radio"
                             name={`pos-group-${group.id}`}
@@ -513,7 +518,7 @@ export default function PosPage() {
             <div className="modal-head">
               <div>
                 <h2 id="pos-note-title">{t("pos.noteTitle")}</h2>
-                <p>{KANTIN_DATA.localized(KANTIN_DATA.menuById(items.find((line) => line.lineId === noteLineId)?.menuId || "")?.name || { id: "", en: "" }, lang)}</p>
+                <p>{localized(menu.find((entry) => entry.id === items.find((line) => line.lineId === noteLineId)?.menuId)?.name, lang)}</p>
               </div>
               <button className="icon-btn" type="button" aria-label={t("action.close")} onClick={() => setNoteLineId(null)}>
                 <Icon name="x" />
@@ -554,13 +559,13 @@ export default function PosPage() {
             </div>
             <div className="modal-body">
               <div className="pos-qris-box">
-                <img src="/assets/qr/qris-demo.svg" width={320} height={320} alt="QRIS demo" />
-                <strong>{KANTIN_DATA.formatIDR(qrisOrder.total)}</strong>
+                <img src={qrisOrder.qrUrl || "/assets/qr/qris-demo.svg"} width={320} height={320} alt="QRIS" />
+                <strong>{formatIDR(qrisOrder.total)}</strong>
               </div>
             </div>
             <div className="modal-foot">
               <button className="btn btn-outline" type="button" onClick={() => setQrisOrder(null)}>{t("action.cancel")}</button>
-              <button className="btn btn-primary" type="button" onClick={simulateQris}>{t("pos.simulatePaid")}</button>
+              <button className="btn btn-primary" type="button" onClick={() => void simulateQris()}>{t("pos.simulatePaid")}</button>
             </div>
           </div>
         </div>

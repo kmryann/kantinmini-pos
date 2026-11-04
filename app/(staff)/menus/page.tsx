@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Icon } from "@/components/Icon";
 import { useToast } from "@/components/ToastProvider";
-import { KANTIN_DATA } from "@/lib/data";
+import { api } from "@/lib/api-client";
+import type { Category, MenuItem, MenuPayload } from "@/lib/api-types";
+import { formatIDR } from "@/lib/format";
+import { localized } from "@/lib/order-utils";
+import { useMenuData } from "@/lib/use-menu";
 import { useLanguage } from "@/lib/i18n";
 
 type OptionRow = { name: string; choices: string };
@@ -18,8 +22,10 @@ const slugify = (value: string, fallback = "item") =>
 export default function MenusPage() {
   const { t, lang } = useLanguage();
   const toast = useToast();
-  const [categories, setCategories] = useState<any[]>(() => KANTIN_DATA.categories);
-  const [menus, setMenus] = useState<any[]>(() => KANTIN_DATA.menu);
+  const { categories: fetchedCategories, menu: fetchedMenus, loading, error, reload } = useMenuData();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [menus, setMenus] = useState<MenuItem[]>([]);
+  const [busy, setBusy] = useState(false);
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -43,29 +49,29 @@ export default function MenusPage() {
   }, [lang]);
 
   useEffect(() => {
+    setCategories(fetchedCategories);
+    setMenus(fetchedMenus);
+  }, [fetchedCategories, fetchedMenus]);
+
+  useEffect(() => {
     document.body.classList.toggle("modal-open", menuOpen || categoryOpen);
     return () => document.body.classList.remove("modal-open");
   }, [menuOpen, categoryOpen]);
 
-  const syncMenus = (next: any[]) => {
-    KANTIN_DATA.menu.splice(0, KANTIN_DATA.menu.length, ...next);
-    setMenus([...next]);
+  const applyPayload = (payload: MenuPayload) => {
+    setCategories(payload.categories);
+    setMenus(payload.menu);
   };
 
-  const syncCategories = (next: any[]) => {
-    KANTIN_DATA.categories.splice(0, KANTIN_DATA.categories.length, ...next);
-    setCategories([...next]);
-  };
-
-  const categoryName = (category: any) => KANTIN_DATA.localized(category.name, lang);
-  const menuName = (menu: any) => KANTIN_DATA.localized(menu.name, lang);
+  const categoryName = (category: Category) => localized(category.name, lang);
+  const menuName = (menu: MenuItem) => localized(menu.name, lang);
 
   const visible = useMemo(() => {
     const query = search.trim().toLowerCase();
     return menus.filter((menu) => {
       if (activeCategory !== "all" && menu.category !== activeCategory) return false;
       if (!query) return true;
-      return `${menuName(menu)} ${KANTIN_DATA.localized(menu.desc, lang)}`.toLowerCase().includes(query);
+      return `${menuName(menu)} ${localized(menu.desc, lang)}`.toLowerCase().includes(query);
     });
   }, [menus, activeCategory, search, lang]);
 
@@ -101,9 +107,9 @@ export default function MenusPage() {
     setCategoryOpen(true);
   };
 
-  const saveMenu = (event: FormEvent) => {
+  const saveMenu = async (event: FormEvent) => {
     event.preventDefault();
-    if (!nameId.trim() || !Number.isFinite(Number(price))) return;
+    if (!nameId.trim() || !Number.isFinite(Number(price)) || busy) return;
     const existing = editingId ? menus.find((entry) => entry.id === editingId) : null;
     const optionGroups = optionRows
       .map((row) => {
@@ -132,51 +138,82 @@ export default function MenusPage() {
       popular: existing ? existing.popular : false,
       options: optionGroups,
     };
-    const next = existing
-      ? menus.map((entry) => (entry.id === existing.id ? menu : entry))
-      : [menu, ...menus];
-    syncMenus(next);
-    setActiveCategory(menu.category);
-    setMenuOpen(false);
-    toast(t("menus.menuSaved"));
+    setBusy(true);
+    try {
+      if (existing) {
+        const payload = await api.updateMenu(existing.id, menu);
+        applyPayload(payload);
+      } else {
+        const payload = await api.createMenu(menu as any);
+        applyPayload(payload);
+      }
+      setActiveCategory(menu.category);
+      setMenuOpen(false);
+      toast(t("menus.menuSaved"));
+    } catch (reason: any) {
+      toast(reason?.message || "Menu gagal disimpan.", "error");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const saveCategory = (event: FormEvent) => {
+  const saveCategory = async (event: FormEvent) => {
     event.preventDefault();
-    if (!categoryNameId.trim()) return;
+    if (!categoryNameId.trim() || busy) return;
     const existing = editingCategoryId ? categories.find((entry) => entry.id === editingCategoryId) : null;
     const category = {
       id: existing ? existing.id : `${slugify(categoryNameEn || categoryNameId, "kategori")}-${Date.now()}`,
       name: { id: categoryNameId.trim(), en: categoryNameEn.trim() || categoryNameId.trim() },
       icon: existing ? existing.icon : "utensils",
     };
-    const next = existing
-      ? categories.map((entry) => (entry.id === existing.id ? category : entry))
-      : [...categories, category];
-    syncCategories(next);
-    setActiveCategory(category.id);
-    setCategoryOpen(false);
-    toast(t("menus.categorySaved"));
+    setBusy(true);
+    try {
+      if (existing) {
+        const payload = await api.updateCategory(existing.id, category);
+        applyPayload(payload);
+      } else {
+        const payload = await api.createCategory(category);
+        applyPayload(payload);
+      }
+      setActiveCategory(category.id);
+      setCategoryOpen(false);
+      toast(t("menus.categorySaved"));
+    } catch (reason: any) {
+      toast(reason?.message || "Kategori gagal disimpan.", "error");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const moveMenu = (id: string, direction: number) => {
-    const index = visible.findIndex((menu) => menu.id === id);
+  const moveMenu = async (id: string, direction: number) => {
+    const index = menus.findIndex((menu) => menu.id === id);
     const swap = index + direction;
-    if (index < 0 || swap < 0 || swap >= visible.length) return;
-    const first = menus.findIndex((menu) => menu.id === visible[index].id);
-    const second = menus.findIndex((menu) => menu.id === visible[swap].id);
-    const next = [...menus];
-    [next[first], next[second]] = [next[second], next[first]];
-    syncMenus(next);
+    if (index < 0 || swap < 0 || swap >= menus.length) return;
+    const currentSort = menus[index].sortOrder ?? index;
+    const swapSort = menus[swap].sortOrder ?? swap;
+    try {
+      const payload = await api.updateMenu(menus[index].id, { sortOrder: swapSort });
+      await api.updateMenu(menus[swap].id, { sortOrder: currentSort });
+      applyPayload(payload);
+      void reload();
+    } catch (reason: any) {
+      toast(reason?.message || "Urutan gagal disimpan.", "error");
+    }
   };
 
-  const moveCategory = (id: string, direction: number) => {
+  const moveCategory = async (id: string, direction: number) => {
     const index = categories.findIndex((category) => category.id === id);
     const swap = index + direction;
     if (index < 0 || swap < 0 || swap >= categories.length) return;
-    const next = [...categories];
-    [next[index], next[swap]] = [next[swap], next[index]];
-    syncCategories(next);
+    const currentSort = categories[index].sortOrder ?? index;
+    const swapSort = categories[swap].sortOrder ?? swap;
+    try {
+      await api.updateCategory(categories[index].id, { sortOrder: swapSort });
+      await api.updateCategory(categories[swap].id, { sortOrder: currentSort });
+      void reload();
+    } catch (reason: any) {
+      toast(reason?.message || "Urutan gagal disimpan.", "error");
+    }
   };
 
   return (
@@ -227,8 +264,9 @@ export default function MenusPage() {
           <div className="menu-admin-list">
             {visible.length === 0 ? (
               <div className="empty-state">
-                <span className="empty-icon"><Icon name="utensils" /></span>
-                <h3>{t("menus.empty")}</h3>
+                <span className="empty-icon"><Icon name={loading ? "refresh" : error ? "alert" : "utensils"} /></span>
+                <h3>{loading ? (lang === "id" ? "Memuat menu…" : "Loading menu…") : error ? (lang === "id" ? "Menu gagal dimuat" : "Could not load menu") : t("menus.empty")}</h3>
+                {error ? <button className="btn btn-primary btn-sm" type="button" onClick={() => void reload()}>{lang === "id" ? "Coba lagi" : "Try again"}</button> : null}
               </div>
             ) : visible.map((menu) => {
               const category = categories.find((entry) => entry.id === menu.category);
@@ -241,15 +279,15 @@ export default function MenusPage() {
                     <p>{category ? categoryName(category) : ""} · {menu.options.length ? `${t("label.options")}: ${menu.options.length}` : t("menus.noOptions")}</p>
                     <span className={`badge ${menu.available ? "badge-paid" : "badge-expired"}`} style={{ marginTop: 5 }}>{menu.available ? t("label.available") : t("label.soldOut")}</span>
                   </div>
-                  <span className="menu-admin-price">{KANTIN_DATA.formatIDR(menu.price)}</span>
+                  <span className="menu-admin-price">{formatIDR(menu.price)}</span>
                   <label className="switch" title={t("label.available")}>
                     <input
                       type="checkbox"
                       checked={menu.available}
                       onChange={(event) => {
-                        const next = menus.map((entry) => entry.id === menu.id ? { ...entry, available: event.target.checked } : entry);
-                        syncMenus(next);
-                        toast(t("menus.availabilityUpdated"));
+                        void api.updateMenu(menu.id, { available: event.target.checked })
+                          .then((payload) => { applyPayload(payload); toast(t("menus.availabilityUpdated")); })
+                          .catch((reason) => toast(reason?.message || "Status gagal diperbarui.", "error"));
                       }}
                     />
                     <span className="switch-track" />
@@ -320,9 +358,10 @@ export default function MenusPage() {
                         onChange={(event) => {
                           const file = event.target.files?.[0];
                           if (!file) return;
-                          const url = URL.createObjectURL(file);
-                          setPhoto(url);
-                          setPhotoPreview(url);
+                          setPhotoPreview(URL.createObjectURL(file));
+                          void api.uploadMenuPhoto(file)
+                            .then(({ url }) => setPhoto(url))
+                            .catch((reason) => toast(reason?.message || "Foto gagal diunggah.", "error"));
                         }}
                       />
                     </label>

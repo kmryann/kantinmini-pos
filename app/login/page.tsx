@@ -6,6 +6,9 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Icon } from "@/components/Icon";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { useLanguage } from "@/lib/i18n";
+import { api } from "@/lib/api-client";
+import type { Role } from "@/lib/api-types";
+import { homeForRole } from "@/lib/staff";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,29 +16,42 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = `${t("login.title")} · Kantin Mini`;
   }, [lang, t]);
 
-  const enterAs = (role: "cashier" | "manager" | "admin", href: string) => {
+  const enterAs = async (role: Role) => {
+    setBusy(`demo-${role}`);
+    setError("");
     try {
-      localStorage.setItem("kantin-demo-role", role);
-    } catch {
-      // Storage may be unavailable.
+      const user = await api.demoLogin(role);
+      router.push(homeForRole(user.role));
+    } catch (reason: any) {
+      setError(reason?.message || t("login.invalid"));
+    } finally {
+      setBusy(null);
     }
-    router.push(href);
   };
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!email.trim() || !password.trim()) {
-      setError(true);
+      setError(t("login.invalid"));
       return;
     }
-    setError(false);
-    enterAs("cashier", "/pos");
+    setBusy("form");
+    setError("");
+    try {
+      const user = await api.login(email, password);
+      router.push(homeForRole(user.role));
+    } catch (reason: any) {
+      setError(reason?.message || t("login.invalid"));
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (
@@ -112,8 +128,10 @@ export default function LoginPage() {
               </label>
               <span />
             </div>
-            {error ? <p className="login-error is-visible" role="alert">{t("login.invalid")}</p> : null}
-            <button className="btn btn-primary btn-block" type="submit">{t("login.submit")}</button>
+            {error ? <p className="login-error is-visible" role="alert">{error}</p> : null}
+            <button className="btn btn-primary btn-block" type="submit" disabled={busy === "form"}>
+              {busy === "form" ? "..." : t("login.submit")}
+            </button>
           </form>
 
           <div className="login-demo">
@@ -123,17 +141,17 @@ export default function LoginPage() {
             </div>
             <p>{t("login.demoDesc")}</p>
             <div className="demo-roles">
-              <button className="demo-role" type="button" onClick={() => enterAs("cashier", "/pos")}>
+              <button className="demo-role" type="button" disabled={Boolean(busy)} onClick={() => enterAs("cashier")}>
                 <Icon name="layout" />
                 <strong>{t("login.cashier")}</strong>
                 <small>POS</small>
               </button>
-              <button className="demo-role" type="button" onClick={() => enterAs("manager", "/dashboard")}>
+              <button className="demo-role" type="button" disabled={Boolean(busy)} onClick={() => enterAs("manager")}>
                 <Icon name="chart" />
                 <strong>{t("login.manager")}</strong>
                 <small>Dashboard</small>
               </button>
-              <button className="demo-role" type="button" onClick={() => enterAs("admin", "/settings")}>
+              <button className="demo-role" type="button" disabled={Boolean(busy)} onClick={() => enterAs("admin")}>
                 <Icon name="settings" />
                 <strong>{t("login.admin")}</strong>
                 <small>Admin</small>

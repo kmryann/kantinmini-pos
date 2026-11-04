@@ -6,29 +6,29 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Icon } from "@/components/Icon";
 import { useCustomer } from "@/components/CustomerProvider";
 import { useToast } from "@/components/ToastProvider";
-import { KANTIN_DATA } from "@/lib/data";
+import { api } from "@/lib/api-client";
+import { formatIDR } from "@/lib/format";
+import { localized, orderItemSummary, optionLabelsFor } from "@/lib/order-utils";
+import { useMenuData } from "@/lib/use-menu";
 import { useLanguage } from "@/lib/i18n";
-import {
-  createOrderCode,
-  createPaymentCode,
-  saveActiveOrder,
-  type ActiveOrder,
-} from "@/lib/customer-storage";
+import { saveActiveOrderRef } from "@/lib/customer-storage";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { t, lang } = useLanguage();
   const toast = useToast();
   const { cart, context, cartTotal, clearCart, updateLine } = useCustomer();
+  const { menuById, loading: menuLoading } = useMenuData();
   const [name, setName] = useState("");
   const [method, setMethod] = useState<"QRIS" | "Cash">("QRIS");
   const [nameError, setNameError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     document.title = `${t("checkout.title")} · Kantin Mini`;
   }, [lang, t]);
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!name.trim()) {
       setNameError(true);
@@ -38,32 +38,35 @@ export default function CheckoutPage() {
       toast(t("payment.emptyCart"), "error");
       return;
     }
+    if (menuLoading) {
+      toast(lang === "id" ? "Menu masih dimuat." : "Menu is still loading.", "error");
+      return;
+    }
     setNameError(false);
-    const now = new Date();
-    const order: ActiveOrder = {
-      code: createOrderCode(),
-      customer: name.trim(),
-      type: context.type,
-      table: context.table,
-      items: cart.map((line) => ({
-        menuId: line.menuId,
-        qty: line.qty,
-        options: line.options,
-        note: line.note,
-      })),
-      total: cartTotal,
-      payment: method,
-      paymentStatus: "pending",
-      orderStatus: "new",
-      source: "QR",
-      createdAt: now.toISOString(),
-      expiresAt: new Date(now.getTime() + 30 * 60 * 1000).toISOString(),
-      paymentCode: method === "Cash" ? createPaymentCode() : null,
-    };
-    saveActiveOrder(order);
-    clearCart();
-    toast(t("payment.created"));
-    router.push("/status");
+    setSubmitting(true);
+    try {
+      const order = await api.createOrder({
+        customer: name.trim(),
+        type: context.type,
+        table: context.type === "dine-in" ? context.table : null,
+        items: cart.map((line) => ({
+          menuId: line.menuId,
+          qty: line.qty,
+          options: line.options,
+          note: line.note,
+        })),
+        payment: method,
+      });
+      if (!order.publicToken) throw new Error("Token pesanan tidak diterima.");
+      saveActiveOrderRef({ id: order.id, code: order.code, token: order.publicToken });
+      clearCart();
+      toast(t("payment.created"));
+      router.push("/status");
+    } catch (error: any) {
+      toast(error?.message || t("payment.emptyCart"), "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -92,16 +95,22 @@ export default function CheckoutPage() {
               <h2><Icon name="receipt" /><span>{t("payment.summary")}</span></h2>
               <div className="checkout-item-list">
                 {cart.map((line) => {
-                  const item = KANTIN_DATA.menuById(line.menuId);
-                  if (!item) return null;
-                  const options = KANTIN_DATA.orderItemSummary(line, lang);
+                  const item = menuById(line.menuId);
+                  const name = line.name || item?.name;
+                  const image = line.image || item?.image || "/assets/menu/placeholder.webp";
+                  const price = Number(line.price ?? item?.price ?? 0);
+                  const options = line.optionLabels?.length
+                    ? orderItemSummary({ optionLabels: line.optionLabels }, lang)
+                    : item
+                      ? optionLabelsFor(item, line.options).map((label) => localized(label, lang)).join(" · ")
+                      : "";
                   return (
                     <div className="checkout-item" key={line.lineId}>
                       <div className="checkout-item-thumb">
-                        <img src={item.image} alt={KANTIN_DATA.localized(item.name, lang)} width={800} height={800} decoding="async" />
+                        <img src={image} alt={localized(name, lang)} width={800} height={800} decoding="async" />
                       </div>
                       <div className="checkout-item-copy">
-                        <h3>{KANTIN_DATA.localized(item.name, lang)}</h3>
+                        <h3>{localized(name, lang)}</h3>
                         {options ? <p>{options}</p> : null}
                         {line.note ? <p className="cart-note">{t("cart.note")}: {line.note}</p> : null}
                         <div className="checkout-item-controls">
@@ -123,7 +132,7 @@ export default function CheckoutPage() {
                               <Icon name="plus" />
                             </button>
                           </div>
-                          <strong className="checkout-item-price">{KANTIN_DATA.formatIDR(item.price * line.qty)}</strong>
+                          <strong className="checkout-item-price">{formatIDR(price * line.qty)}</strong>
                         </div>
                       </div>
                     </div>
@@ -177,9 +186,11 @@ export default function CheckoutPage() {
               <div className="bar-inner">
                 <div className="checkout-bar-copy">
                   <small>{t("cart.total")}</small>
-                  <strong>{KANTIN_DATA.formatIDR(cartTotal)}</strong>
+                  <strong>{formatIDR(cartTotal)}</strong>
                 </div>
-                <button className="btn btn-primary" type="submit">{t("payment.pay")}</button>
+                <button className="btn btn-primary" type="submit" disabled={submitting}>
+                  {submitting ? (lang === "id" ? "Memproses…" : "Processing…") : t("payment.pay")}
+                </button>
               </div>
             </div>
           </form>

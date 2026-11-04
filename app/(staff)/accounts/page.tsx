@@ -3,33 +3,38 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Icon } from "@/components/Icon";
 import { useToast } from "@/components/ToastProvider";
-import { KANTIN_DATA } from "@/lib/data";
+import { api } from "@/lib/api-client";
+import type { Role, StaffAccount } from "@/lib/api-types";
+import { formatDate, formatTime } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n";
 
-type Account = {
-  id: string;
-  name: string;
-  email: string;
-  role: "cashier" | "manager" | "admin";
-  active: boolean;
-  lastLogin: string;
-};
+type Account = StaffAccount;
+
+const initials = (name: string) =>
+  name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
 
 export default function AccountsPage() {
   const { t, lang } = useLanguage();
   const toast = useToast();
-  const [accounts, setAccounts] = useState<Account[]>(() => KANTIN_DATA.accounts.map((entry: Account) => ({ ...entry })));
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<Account["role"]>("cashier");
+  const [role, setRole] = useState<Role>("cashier");
   const [active, setActive] = useState(true);
+  const [password, setPassword] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     document.title = "Akun staf · Kantin Mini";
+    api.accounts()
+      .then(setAccounts)
+      .catch(() => setAccounts([]))
+      .finally(() => setLoading(false));
   }, [lang]);
 
   useEffect(() => {
@@ -53,41 +58,56 @@ export default function AccountsPage() {
     setEmail(account ? account.email : "");
     setRole(account ? account.role : "cashier");
     setActive(account ? account.active : true);
+    setPassword("");
     setModalOpen(true);
   };
 
-  const save = (event: FormEvent) => {
+  const save = async (event: FormEvent) => {
     event.preventDefault();
-    if (!name.trim() || !email.trim()) return;
-    const existing = editingId ? accounts.find((entry) => entry.id === editingId) : null;
-    const activeAdmins = accounts.filter((entry) => entry.role === "admin" && entry.active);
-    if (existing && existing.role === "admin" && (role !== "admin" || !active) && activeAdmins.length <= 1) {
-      toast(t("accounts.lastAdmin"), "error");
+    if (!name.trim() || !email.trim() || saving) return;
+    if (!editingId && password.trim().length < 6) {
+      toast(lang === "id" ? "Kata sandi minimal 6 karakter." : "Password must be at least 6 characters.", "error");
       return;
     }
-    const next = existing
-      ? accounts.map((entry) => entry.id === existing.id ? { ...entry, name: name.trim(), email: email.trim(), role, active } : entry)
-      : [
-          ...accounts,
-          { id: `u-${Date.now()}`, name: name.trim(), email: email.trim(), role, active, lastLogin: t("accounts.never") },
-        ];
-    setAccounts(next);
-    KANTIN_DATA.accounts.splice(0, KANTIN_DATA.accounts.length, ...next);
-    setModalOpen(false);
-    toast(t("accounts.saved"));
+    setSaving(true);
+    try {
+      const existing = editingId ? accounts.find((entry) => entry.id === editingId) : null;
+      const payload = {
+        name: name.trim(),
+        email: email.trim(),
+        role,
+        active,
+        ...(password.trim() ? { password: password.trim() } : {}),
+      };
+      if (existing) {
+        const updated = await api.updateAccount(existing.id, payload);
+        setAccounts((current) => current.map((entry) => entry.id === updated.id ? updated : entry));
+      } else {
+        const created = await api.createAccount({ ...payload, password: password.trim() });
+        setAccounts((current) => [...current, created]);
+      }
+      setModalOpen(false);
+      toast(t("accounts.saved"));
+    } catch (error: any) {
+      toast(error?.message || "Akun gagal disimpan.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const toggleActive = (id: string, nextActive: boolean) => {
-    const account = accounts.find((entry) => entry.id === id);
-    if (!account) return;
-    if (!nextActive && account.role === "admin" && accounts.filter((entry) => entry.role === "admin" && entry.active).length <= 1) {
-      toast(t("accounts.lastAdmin"), "error");
-      return;
+  const toggleActive = async (id: string, nextActive: boolean) => {
+    try {
+      const updated = await api.updateAccount(id, { active: nextActive });
+      setAccounts((current) => current.map((entry) => entry.id === id ? updated : entry));
+      toast(t("accounts.saved"));
+    } catch (error: any) {
+      toast(error?.message || t("accounts.lastAdmin"), "error");
     }
-    const next = accounts.map((entry) => entry.id === id ? { ...entry, active: nextActive } : entry);
-    setAccounts(next);
-    KANTIN_DATA.accounts.splice(0, KANTIN_DATA.accounts.length, ...next);
-    toast(t("accounts.saved"));
+  };
+
+  const lastLogin = (value: string | null) => {
+    if (!value) return t("accounts.never");
+    return `${formatDate(value, lang, { day: "numeric", month: "short" })}, ${formatTime(value, lang)}`;
   };
 
   const roleLabel = (value: Account["role"]) => t(`role.${value}`);
@@ -136,13 +156,15 @@ export default function AccountsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan={5} className="table-empty">{lang === "id" ? "Memuat akun…" : "Loading accounts…"}</td></tr>
+              ) : filtered.length === 0 ? (
                 <tr><td colSpan={5} className="table-empty">{t("accounts.empty")}</td></tr>
               ) : filtered.map((account) => (
                 <tr key={account.id}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                      <span className="avatar">{KANTIN_DATA.initials(account.name)}</span>
+                      <span className="avatar">{initials(account.name)}</span>
                       <div>
                         <div className="cell-strong">{account.name}</div>
                         <div className="cell-muted">{account.email}</div>
@@ -157,7 +179,7 @@ export default function AccountsPage() {
                       <span className="switch-label">{account.active ? t("label.active") : t("label.inactive")}</span>
                     </label>
                   </td>
-                  <td className="cell-muted">{account.lastLogin || t("accounts.never")}</td>
+                  <td className="cell-muted">{lastLogin(account.lastLoginAt)}</td>
                   <td>
                     <button className="icon-btn" type="button" aria-label={t("action.edit")} onClick={() => openAccount(account.id)}>
                       <Icon name="edit" />
@@ -191,9 +213,22 @@ export default function AccountsPage() {
                     <label htmlFor="account-email">{t("accounts.email")}</label>
                     <input className="input" id="account-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={80} />
                   </div>
+                  <div className="field field-full">
+                    <label htmlFor="account-password">{lang === "id" ? "Kata sandi" : "Password"}</label>
+                    <input
+                      className="input"
+                      id="account-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder={editingId ? (lang === "id" ? "Kosongkan jika tidak diubah" : "Leave blank to keep current") : (lang === "id" ? "Minimal 6 karakter" : "At least 6 characters")}
+                      minLength={editingId ? undefined : 6}
+                    />
+                  </div>
                   <div className="field">
                     <label htmlFor="account-role">{t("accounts.role")}</label>
-                    <select className="select" id="account-role" value={role} onChange={(event) => setRole(event.target.value as Account["role"])}>
+                    <select className="select" id="account-role" value={role} onChange={(event) => setRole(event.target.value as Role)}>
                       <option value="cashier">{t("role.cashier")}</option>
                       <option value="manager">{t("role.manager")}</option>
                       <option value="admin">{t("role.admin")}</option>
@@ -212,7 +247,7 @@ export default function AccountsPage() {
               </div>
               <div className="modal-foot">
                 <button className="btn btn-outline" type="button" onClick={() => setModalOpen(false)}>{t("action.cancel")}</button>
-                <button className="btn btn-primary" type="submit">{t("action.save")}</button>
+                <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? "..." : t("action.save")}</button>
               </div>
             </form>
           </div>

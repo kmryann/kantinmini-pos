@@ -5,17 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Icon } from "@/components/Icon";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
+import { api } from "@/lib/api-client";
+import type { SessionUser } from "@/lib/api-types";
 import { useLanguage } from "@/lib/i18n";
 import {
   allowedPages,
-  defaultRoleForPath,
   homeForRole,
-  isRole,
   navConfig,
   normalizePath,
   pageTitles,
-  roleUsers,
-  type Role,
 } from "@/lib/staff";
 
 export function StaffShell({ children }: { children: ReactNode }) {
@@ -23,25 +21,41 @@ export function StaffShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { lang, t } = useLanguage();
   const path = normalizePath(pathname);
-  const [role, setRole] = useState<Role | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dateLabel, setDateLabel] = useState("");
 
   useEffect(() => {
-    let stored: string | null = null;
-    try {
-      stored = localStorage.getItem("kantin-demo-role");
-    } catch {
-      stored = null;
-    }
-    const selected = isRole(stored) ? stored : defaultRoleForPath(path);
+    let active = true;
+    api
+      .session()
+      .then(({ user: sessionUser }) => {
+        if (!active) return;
+        setUser(sessionUser);
+        setLoading(false);
+        if (!sessionUser) {
+          router.replace("/login");
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setUser(null);
+        setLoading(false);
+        router.replace("/login");
+      });
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
     const allowed = allowedPages[path];
-    if (allowed && !allowed.includes(selected)) {
-      router.replace(homeForRole(selected));
-      return;
+    if (allowed && !allowed.includes(user.role)) {
+      router.replace(homeForRole(user.role));
     }
-    setRole(selected);
-  }, [path, router]);
+  }, [path, router, user]);
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -62,28 +76,44 @@ export function StaffShell({ children }: { children: ReactNode }) {
     );
   }, [lang]);
 
-  const effectiveRole = role ?? defaultRoleForPath(path);
-  const user = roleUsers[effectiveRole];
   const title = pageTitles[path] ? pageTitles[path][lang] : "Kantin Mini";
   const sections = useMemo(
     () =>
       navConfig
         .map((section) => ({
           ...section,
-          items: section.items.filter((item) => item.roles.includes(effectiveRole)),
+          items: user
+            ? section.items.filter((item) => item.roles.includes(user.role))
+            : [],
         }))
         .filter((section) => section.items.length > 0),
-    [effectiveRole],
+    [user],
   );
 
-  const logout = () => {
+  const logout = async () => {
     try {
-      localStorage.removeItem("kantin-demo-role");
+      await api.logout();
     } catch {
-      // Storage may be unavailable.
+      // Clear the local view even if the request fails.
     }
     router.push("/login");
   };
+
+  if (loading || !user) {
+    return (
+      <div className="app-loading">
+        <span className="app-loading-mark"><Icon name="logo-mark" /></span>
+        <span>Kantin Mini</span>
+      </div>
+    );
+  }
+
+  const initials = user.name
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <div className="app-shell min-h-screen">
@@ -156,7 +186,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
               <Icon name="menu" />
             </button>
             <div className="topbar-heading">
-              <p className="topbar-eyebrow">{t(`role.${effectiveRole}`)}</p>
+              <p className="topbar-eyebrow">{t(`role.${user.role}`)}</p>
               <h1 className="topbar-title">{title}</h1>
             </div>
           </div>
@@ -169,10 +199,10 @@ export function StaffShell({ children }: { children: ReactNode }) {
             ) : null}
             <LanguageSwitch />
             <div className="user-chip">
-              <span className="avatar">{user.initials}</span>
+              <span className="avatar">{initials}</span>
               <span className="user-chip-copy">
-                <strong>{user.short}</strong>
-                <small>{t(`role.${effectiveRole}`)}</small>
+                <strong>{user.name.split(" ")[0]}</strong>
+                <small>{t(`role.${user.role}`)}</small>
               </span>
             </div>
           </div>

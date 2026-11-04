@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Icon } from "@/components/Icon";
-import { KANTIN_DATA } from "@/lib/data";
-import { dateKey, formatDate, formatTime } from "@/lib/format";
+import { useToast } from "@/components/ToastProvider";
+import { api } from "@/lib/api-client";
+import type { Order } from "@/lib/api-types";
+import { dateKey, formatDate, formatIDR, formatTime } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n";
-import { readActiveOrder } from "@/lib/customer-storage";
 
 type Transaction = {
   date: string;
   time: string;
   sort: number;
+  id: string;
   code: string;
   customer: string;
   type: string;
@@ -22,15 +24,42 @@ type Transaction = {
 
 const pageSize = 8;
 
+const defaultRange = () => {
+  const now = new Date();
+  return {
+    from: dateKey(new Date(now.getTime() - 6 * 86400000)),
+    to: dateKey(now),
+  };
+};
+
 export default function ReportsPage() {
   const { t, lang } = useLanguage();
-  const baseRows = useMemo(() => {
-    const list: Transaction[] = [];
-    KANTIN_DATA.orders.forEach((order: any) => {
-      list.push({
+  const toast = useToast();
+  const initial = defaultRange();
+  const [rows, setRows] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
+  const [payment, setPayment] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [type, setType] = useState("all");
+  const [search, setSearch] = useState("");
+  const [applied, setApplied] = useState({ from: initial.from, to: initial.to, payment: "all", status: "all", type: "all", search: "" });
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    document.title = "Laporan transaksi · Kantin Mini";
+  }, [lang]);
+
+  const load = useCallback(async (fromValue: string, toValue: string) => {
+    setLoading(true);
+    try {
+      const report = await api.reports({ from: fromValue, to: toValue });
+      setRows(report.transactions.map((order: Order) => ({
         date: dateKey(order.createdAt),
         time: formatTime(order.createdAt, lang),
         sort: new Date(order.createdAt).getTime(),
+        id: order.id,
         code: order.code,
         customer: order.customer,
         type: order.type,
@@ -38,63 +67,19 @@ export default function ReportsPage() {
         payment: order.payment,
         status: order.paymentStatus,
         total: order.total,
-      });
-    });
-    KANTIN_DATA.history.forEach((row: any) => {
-      list.push({
-        date: row.date,
-        time: row.time,
-        sort: new Date(`${row.date}T${row.time}:00+07:00`).getTime(),
-        code: row.code,
-        customer: row.customer,
-        type: row.type,
-        table: row.table,
-        payment: row.payment,
-        status: row.status,
-        total: row.total,
-      });
-    });
-    return list;
-  }, [lang]);
-
-  const [rows, setRows] = useState<Transaction[]>(baseRows);
-  const minDate = baseRows.length ? [...baseRows].sort((a, b) => a.date.localeCompare(b.date))[0].date : "";
-  const maxDate = baseRows.length ? [...baseRows].sort((a, b) => b.date.localeCompare(a.date))[0].date : "";
-  const [from, setFrom] = useState(minDate);
-  const [to, setTo] = useState(maxDate);
-  const [payment, setPayment] = useState("all");
-  const [status, setStatus] = useState("all");
-  const [type, setType] = useState("all");
-  const [search, setSearch] = useState("");
-  const [applied, setApplied] = useState({ from: minDate, to: maxDate, payment: "all", status: "all", type: "all", search: "" });
-  const [page, setPage] = useState(1);
+      })));
+    } catch (error: any) {
+      toast(error?.message || "Laporan gagal dimuat.", "error");
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [lang, toast]);
 
   useEffect(() => {
-    document.title = "Laporan transaksi · Kantin Mini";
-  }, [lang]);
-
-  useEffect(() => {
-    const active = readActiveOrder();
-    if (!active) return;
-    setRows((current) => {
-      if (current.some((row) => row.code === active.code)) return current;
-      return [
-        ...current,
-        {
-          date: dateKey(active.createdAt),
-          time: formatTime(active.createdAt, lang),
-          sort: new Date(active.createdAt).getTime(),
-          code: active.code,
-          customer: active.customer,
-          type: active.type,
-          table: active.table,
-          payment: active.payment,
-          status: active.paymentStatus,
-          total: active.total,
-        },
-      ];
-    });
-  }, [lang]);
+    void load(initial.from, initial.to);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtered = useMemo(() => {
     const query = applied.search.trim().toLowerCase();
@@ -137,17 +122,20 @@ export default function ReportsPage() {
     event.preventDefault();
     setApplied({ from, to, payment, status, type, search });
     setPage(1);
+    void load(from, to);
   };
 
   const reset = () => {
-    setFrom(minDate);
-    setTo(maxDate);
+    const range = defaultRange();
+    setFrom(range.from);
+    setTo(range.to);
     setPayment("all");
     setStatus("all");
     setType("all");
     setSearch("");
-    setApplied({ from: minDate, to: maxDate, payment: "all", status: "all", type: "all", search: "" });
+    setApplied({ from: range.from, to: range.to, payment: "all", status: "all", type: "all", search: "" });
     setPage(1);
+    void load(range.from, range.to);
   };
 
   return (
@@ -162,7 +150,7 @@ export default function ReportsPage() {
       <div className="report-summary">
         <div className="report-summary-card">
           <p>{t("reports.totalRevenue")}</p>
-          <strong>{KANTIN_DATA.formatIDR(revenue)}</strong>
+          <strong>{formatIDR(revenue)}</strong>
           <span className="cell-muted">{t("reports.revenueNote")}</span>
         </div>
         <div className="report-summary-card">
@@ -171,7 +159,7 @@ export default function ReportsPage() {
         </div>
         <div className="report-summary-card">
           <p>{t("reports.avgOrder")}</p>
-          <strong>{KANTIN_DATA.formatIDR(paid.length ? Math.round(revenue / paid.length) : 0)}</strong>
+          <strong>{formatIDR(paid.length ? Math.round(revenue / paid.length) : 0)}</strong>
         </div>
       </div>
 
@@ -215,7 +203,7 @@ export default function ReportsPage() {
           <input className="input" id="report-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("reports.searchPlaceholder")} />
         </div>
         <div className="field" style={{ alignSelf: "end" }}>
-          <button className="btn btn-primary btn-sm" type="submit"><Icon name="filter" /><span>{t("action.apply")}</span></button>
+          <button className="btn btn-primary btn-sm" type="submit" disabled={loading}><Icon name="filter" /><span>{t("action.apply")}</span></button>
         </div>
         <div className="field" style={{ alignSelf: "end" }}>
           <button className="btn btn-outline btn-sm" type="button" onClick={reset}>{t("reports.reset")}</button>
@@ -241,10 +229,12 @@ export default function ReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {pageRows.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan={7} className="table-empty">{lang === "id" ? "Memuat laporan…" : "Loading report…"}</td></tr>
+              ) : pageRows.length === 0 ? (
                 <tr><td colSpan={7} className="table-empty">{t("reports.empty")}</td></tr>
               ) : pageRows.map((row) => (
-                <tr key={row.code}>
+                <tr key={row.id}>
                   <td>
                     <strong style={{ fontWeight: 600 }}>{formatDate(row.date, lang, { day: "2-digit", month: "short" })}</strong>
                     <div className="cell-muted">{row.time}</div>
@@ -254,7 +244,7 @@ export default function ReportsPage() {
                   <td className="cell-muted">{typeLabel(row)}</td>
                   <td>{row.payment}</td>
                   <td>{statusBadge(row.status)}</td>
-                  <td className="cell-total">{KANTIN_DATA.formatIDR(row.total)}</td>
+                  <td className="cell-total">{formatIDR(row.total)}</td>
                 </tr>
               ))}
             </tbody>

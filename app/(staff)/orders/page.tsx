@@ -3,73 +3,48 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { useToast } from "@/components/ToastProvider";
-import { KANTIN_DATA } from "@/lib/data";
-import { formatTime } from "@/lib/format";
+import { api } from "@/lib/api-client";
+import type { Order } from "@/lib/api-types";
+import { formatIDR, formatTime } from "@/lib/format";
+import { localized, orderItemSummary } from "@/lib/order-utils";
 import { useLanguage } from "@/lib/i18n";
-import { readActiveOrder, saveActiveOrder } from "@/lib/customer-storage";
-
-type Order = {
-  code: string;
-  customer: string;
-  type: "dine-in" | "takeaway";
-  table: number | null;
-  items: { menuId: string; qty: number; options: string[]; note: string }[];
-  total: number;
-  payment: "QRIS" | "Cash";
-  paymentStatus: "pending" | "paid" | "expired" | "cancelled";
-  orderStatus: "new" | "cooking" | "ready" | "cancelled";
-  source: "QR" | "POS";
-  createdAt: string;
-  paidAt?: string | null;
-  paymentCode?: string | null;
-  _source: "seed" | "pos" | "active";
-};
 
 export default function OrdersPage() {
   const { t, lang } = useLanguage();
   const toast = useToast();
-  const initialOrders = useMemo(
-    () =>
-      KANTIN_DATA.orders.map((order: any) => ({ ...order, _source: "seed" as const })) as Order[],
-    [],
-  );
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [receiptWidth, setReceiptWidth] = useState("80");
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
   useEffect(() => {
     document.title = "Pesanan & pembayaran · Kantin Mini";
   }, [lang]);
 
-  const load = useCallback(() => {
-    const map = new Map<string, Order>();
-    KANTIN_DATA.orders.forEach((order) => map.set(order.code, { ...order, _source: "seed" }));
-    KANTIN_DATA.getPosOrders().forEach((order) => map.set(order.code, { ...order, _source: "pos" }));
-    const active = readActiveOrder();
-    if (active) map.set(active.code, { ...active, _source: "active" });
-    const next = [...map.values()].sort((a, b) => {
-      const rank = (order: Order) => {
-        if (order.paymentStatus === "pending") return 0;
-        if (order.paymentStatus === "paid" && order.orderStatus !== "ready") return 1;
-        if (order.paymentStatus === "paid") return 2;
-        return 3;
-      };
-      const difference = rank(a) - rank(b);
-      if (difference !== 0) return difference;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-    setOrders(next);
-  }, []);
+  const load = useCallback(async (silent = false) => {
+    try {
+      const data = await api.staffOrders();
+      setOrders(data);
+      setLoading(false);
+      if (!silent) toast(t("orders.refresh"));
+    } catch (error: any) {
+      setLoading(false);
+      if (!silent) toast(error?.message || "Gagal memuat pesanan.", "error");
+    }
+  }, [t, toast]);
 
   useEffect(() => {
-    load();
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === "kantin-active-order" || event.key === "kantin-pos-orders") load();
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    void load(true);
+    api.printSettings().then((settings) => setReceiptWidth(settings.receiptWidth || "80")).catch(() => {});
   }, [load]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = window.setInterval(() => void load(true), 5000);
+    return () => window.clearInterval(timer);
+  }, [autoRefresh, load]);
 
   useEffect(() => {
     document.body.classList.toggle("modal-open", Boolean(receiptOrder));
@@ -115,47 +90,25 @@ export default function OrdersPage() {
     (order) => order.paymentStatus === "expired" || order.paymentStatus === "cancelled",
   );
 
-  const persist = (order: Order, patch: Partial<Order>) => {
-    setOrders((current) =>
-      current.map((entry) => (entry.code === order.code ? { ...entry, ...patch } : entry)),
-    );
-    if (order._source === "pos") {
-      const list = KANTIN_DATA.getPosOrders().map((entry) =>
-        entry.code === order.code ? { ...entry, ...patch } : entry,
-      );
-      localStorage.setItem("kantin-pos-orders", JSON.stringify(list));
-    }
-    if (order._source === "active") {
-      const active = readActiveOrder();
-      if (active && active.code === order.code) saveActiveOrder({ ...active, ...patch });
-    }
-  };
-
-  const updateStatus = (order: Order, action: string) => {
-    if (action === "accept") {
-      persist(order, { paymentStatus: "paid", paidAt: new Date().toISOString() });
-      toast(t("orders.accepted"));
-    } else if (action === "cooking") {
-      persist(order, { orderStatus: "cooking" });
-      toast(t("orders.statusUpdated"));
-    } else if (action === "ready") {
-      persist(order, { orderStatus: "ready" });
-      toast(t("orders.statusUpdated"));
-    } else if (action === "cancel") {
-      if (order.paymentStatus !== "pending") {
-        toast(t("orders.onlyUnpaid"), "error");
-        return;
-      }
-      if (!window.confirm(t("orders.cancelConfirm"))) return;
-      persist(order, { paymentStatus: "cancelled", orderStatus: "cancelled" });
-      toast(t("orders.cancelled"));
-    } else if (action === "receipt") {
-      try {
-        setReceiptWidth(localStorage.getItem("kantin-receipt-width") === "58" ? "58" : "80");
-      } catch {
-        setReceiptWidth("80");
-      }
+  const updateStatus = async (order: Order, action: string) => {
+    if (action === "receipt") {
       setReceiptOrder(order);
+      return;
+    }
+    if (action === "cancel" && !window.confirm(t("orders.cancelConfirm"))) return;
+    const mapped = action === "accept" ? "accept-cash" : action;
+    try {
+      const updated = await api.updateOrder(order.id, mapped);
+      setOrders((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)));
+      const messages: Record<string, string> = {
+        accept: t("orders.accepted"),
+        cooking: t("orders.statusUpdated"),
+        ready: t("orders.statusUpdated"),
+        cancel: t("orders.cancelled"),
+      };
+      toast(messages[action] || t("orders.statusUpdated"));
+    } catch (error: any) {
+      toast(error?.message || t("orders.onlyUnpaid"), "error");
     }
   };
 
@@ -163,10 +116,10 @@ export default function OrdersPage() {
     if (order.paymentStatus === "pending" && order.payment === "Cash") {
       return (
         <>
-          <button className="btn btn-primary btn-sm" type="button" onClick={() => updateStatus(order, "accept")}>
+          <button className="btn btn-primary btn-sm" type="button" onClick={() => void updateStatus(order, "accept")}>
             <Icon name="check" />{t("orders.acceptCash")}
           </button>
-          <button className="btn btn-danger btn-sm" type="button" onClick={() => updateStatus(order, "cancel")}>
+          <button className="btn btn-danger btn-sm" type="button" onClick={() => void updateStatus(order, "cancel")}>
             <Icon name="x" />{t("orders.cancel")}
           </button>
         </>
@@ -174,7 +127,7 @@ export default function OrdersPage() {
     }
     if (order.paymentStatus === "pending") {
       return (
-        <button className="btn btn-danger btn-sm" type="button" title={t("orders.onlyUnpaid")} onClick={() => updateStatus(order, "cancel")}>
+        <button className="btn btn-danger btn-sm" type="button" title={t("orders.onlyUnpaid")} onClick={() => void updateStatus(order, "cancel")}>
           <Icon name="x" />{t("orders.cancel")}
         </button>
       );
@@ -183,15 +136,15 @@ export default function OrdersPage() {
       return (
         <>
           {order.orderStatus === "new" ? (
-            <button className="btn btn-primary btn-sm" type="button" onClick={() => updateStatus(order, "cooking")}>
+            <button className="btn btn-primary btn-sm" type="button" onClick={() => void updateStatus(order, "cooking")}>
               <Icon name="chef-hat" />{t("orders.markCooking")}
             </button>
           ) : order.orderStatus === "cooking" ? (
-            <button className="btn btn-primary btn-sm" type="button" onClick={() => updateStatus(order, "ready")}>
+            <button className="btn btn-primary btn-sm" type="button" onClick={() => void updateStatus(order, "ready")}>
               <Icon name="check" />{t("orders.markReady")}
             </button>
           ) : null}
-          <button className="btn btn-outline btn-sm" type="button" onClick={() => updateStatus(order, "receipt")}>
+          <button className="btn btn-outline btn-sm" type="button" onClick={() => void updateStatus(order, "receipt")}>
             <Icon name="printer" />{t("action.reprint")}
           </button>
         </>
@@ -205,17 +158,13 @@ export default function OrdersPage() {
     const pendingCash = order.paymentStatus === "pending" && order.payment === "Cash";
     const pendingQr = order.paymentStatus === "pending" && order.payment === "QRIS";
     const itemSummary = order.items
-      .map((item) => {
-        const menu = KANTIN_DATA.menuById(item.menuId);
-        return menu ? `${KANTIN_DATA.localized(menu.name, lang)} ×${item.qty}` : null;
-      })
-      .filter(Boolean)
+      .map((item) => `${localized(item.name, lang)} ×${item.qty}`)
       .join(" · ");
 
     return (
       <article
         className={`cashier-order ${pendingCash ? "is-cash" : pendingQr ? "is-qr" : `is-${order.orderStatus}`}`}
-        key={order.code}
+        key={order.id}
       >
         <div className="cashier-order-head">
           <span className="cashier-order-code">{order.code}</span>
@@ -237,7 +186,7 @@ export default function OrdersPage() {
 
         <div className="cashier-order-meta">
           <span>{t("orders.itemsCount", { count: itemCount })}</span>
-          <strong>{KANTIN_DATA.formatIDR(order.total)}</strong>
+          <strong>{formatIDR(order.total)}</strong>
         </div>
 
         {pendingCash ? (
@@ -287,21 +236,16 @@ export default function OrdersPage() {
   ];
 
   const receiptItemRows = (order: Order, withPrice: boolean) =>
-    order.items.map((item, index) => {
-      const menu = KANTIN_DATA.menuById(item.menuId);
-      if (!menu) return null;
-      const options = KANTIN_DATA.orderItemSummary(item, lang);
-      return (
-        <div className="receipt-line" key={`${item.menuId}-${index}`}>
-          <span>
-            {KANTIN_DATA.localized(menu.name, lang)} × {item.qty}
-            {options ? <><br /><small>{options}</small></> : null}
-            {item.note ? <><br /><small>{item.note}</small></> : null}
-          </span>
-          {withPrice ? <span>{KANTIN_DATA.formatIDR(menu.price * item.qty)}</span> : null}
-        </div>
-      );
-    });
+    order.items.map((item, index) => (
+      <div className="receipt-line" key={`${item.menuId}-${index}`}>
+        <span>
+          {localized(item.name, lang)} × {item.qty}
+          {orderItemSummary(item, lang) ? <><br /><small>{orderItemSummary(item, lang)}</small></> : null}
+          {item.note ? <><br /><small>{item.note}</small></> : null}
+        </span>
+        {withPrice ? <span>{formatIDR(item.price * item.qty)}</span> : null}
+      </div>
+    ));
 
   const receiptStatus = (order: Order) =>
     order.paymentStatus === "paid"
@@ -320,7 +264,16 @@ export default function OrdersPage() {
           <p className="page-subtitle">{t("orders.subtitle")}</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-sm btn-outline cashier-refresh" type="button" onClick={load}>
+          <button
+            className={`btn btn-sm ${autoRefresh ? "btn-primary" : "btn-outline"} cashier-refresh`}
+            type="button"
+            onClick={() => setAutoRefresh((value) => !value)}
+            title={autoRefresh ? "Auto-refresh aktif" : "Auto-refresh nonaktif"}
+          >
+            <Icon name="refresh" />
+            <span className="cashier-refresh-label">{autoRefresh ? t("orders.live") : t("orders.refresh")}</span>
+          </button>
+          <button className="btn btn-sm btn-outline cashier-refresh" type="button" onClick={() => void load()}>
             <Icon name="refresh" />
             <span className="cashier-refresh-label">{t("orders.refresh")}</span>
           </button>
@@ -340,32 +293,39 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      <div className="cashier-board">
-        {lanes.map((lane) => (
-          <section className={`cashier-lane is-${lane.key}`} key={lane.key}>
-            <header className="cashier-lane-head">
-              <div className="cashier-lane-heading">
-                <span className="cashier-lane-icon"><Icon name={lane.icon} /></span>
-                <div>
-                  <h3>{lane.title}</h3>
-                  <p>{lane.description}</p>
+      {loading ? (
+        <div className="empty-state">
+          <span className="empty-icon"><Icon name="refresh" /></span>
+          <h3>{lang === "id" ? "Memuat pesanan…" : "Loading orders…"}</h3>
+        </div>
+      ) : (
+        <div className="cashier-board">
+          {lanes.map((lane) => (
+            <section className={`cashier-lane is-${lane.key}`} key={lane.key}>
+              <header className="cashier-lane-head">
+                <div className="cashier-lane-heading">
+                  <span className="cashier-lane-icon"><Icon name={lane.icon} /></span>
+                  <div>
+                    <h3>{lane.title}</h3>
+                    <p>{lane.description}</p>
+                  </div>
                 </div>
+                <span className="cashier-lane-count">{lane.orders.length}</span>
+              </header>
+              <div className="cashier-lane-list">
+                {lane.orders.length ? (
+                  lane.orders.map(renderOrderCard)
+                ) : (
+                  <p className="cashier-lane-empty">
+                    <Icon name="check-circle" />
+                    <span>{t("orders.laneEmpty")}</span>
+                  </p>
+                )}
               </div>
-              <span className="cashier-lane-count">{lane.orders.length}</span>
-            </header>
-            <div className="cashier-lane-list">
-              {lane.orders.length ? (
-                lane.orders.map(renderOrderCard)
-              ) : (
-                <p className="cashier-lane-empty">
-                  <Icon name="check-circle" />
-                  <span>{t("orders.laneEmpty")}</span>
-                </p>
-              )}
-            </div>
-          </section>
-        ))}
-      </div>
+            </section>
+          ))}
+        </div>
+      )}
 
       {archiveOrders.length ? (
         <details className="cashier-archive">
@@ -381,11 +341,11 @@ export default function OrdersPage() {
           </summary>
           <div className="cashier-archive-list">
             {archiveOrders.map((order) => (
-              <div className="cashier-archive-row" key={order.code}>
+              <div className="cashier-archive-row" key={order.id}>
                 <span className="cashier-archive-code">{order.code}</span>
                 <span className="cashier-archive-customer">{order.customer}</span>
                 <span className="cashier-archive-type">{typeLabel(order)}</span>
-                <strong>{KANTIN_DATA.formatIDR(order.total)}</strong>
+                <strong>{formatIDR(order.total)}</strong>
                 {paymentBadge(order)}
               </div>
             ))}
@@ -433,7 +393,7 @@ export default function OrdersPage() {
                   <hr />
                   {receiptItemRows(receiptOrder, true)}
                   <hr />
-                  <div className="receipt-total-line"><span>{t("label.total")}</span><span>{KANTIN_DATA.formatIDR(receiptOrder.total)}</span></div>
+                  <div className="receipt-total-line"><span>{t("label.total")}</span><span>{formatIDR(receiptOrder.total)}</span></div>
                   <div className="receipt-line"><span>{receiptOrder.payment}</span><span>{receiptStatus(receiptOrder)}</span></div>
                   <hr />
                   <p className="receipt-thanks">{t("receipt.thankYou")}</p>

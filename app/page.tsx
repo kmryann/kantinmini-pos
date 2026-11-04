@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
+import { api } from "@/lib/api-client";
+import type { PublicSettings } from "@/lib/api-types";
 import { useLanguage } from "@/lib/i18n";
 
 export default function LandingPage() {
@@ -11,6 +13,7 @@ export default function LandingPage() {
   const [slide, setSlide] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [site, setSite] = useState<PublicSettings | null>(null);
 
   const extra =
     lang === "id"
@@ -121,14 +124,20 @@ export default function LandingPage() {
 
   const whatsappDisplay = "0851-1769-3117";
   const whatsappLink = "https://wa.me/6285117693117";
-  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(extra.address)}`;
-  const mapEmbed = `https://www.google.com/maps?q=${encodeURIComponent(extra.address)}&z=15&output=embed`;
+  const contactAddress = site?.address || extra.address;
+  const contactHours = site?.hours || extra.hours;
+  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contactAddress)}`;
+  const mapEmbed = `https://www.google.com/maps?q=${encodeURIComponent(contactAddress)}&z=15&output=embed`;
 
   useEffect(() => {
     document.title = t("pageTitle");
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", t("metaDescription"));
   }, [lang, t]);
+
+  useEffect(() => {
+    api.settings().then(setSite).catch(() => setSite(null));
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -224,7 +233,7 @@ export default function LandingPage() {
               <ul className="hero-meta">
                 <li>
                   <Icon name="clock" />
-                  <span>{t("metaHours")}</span>
+                  <span>{contactHours}</span>
                 </li>
                 <li>
                   <Icon name="users" />
@@ -338,11 +347,11 @@ export default function LandingPage() {
               <ul className="landing-info">
                 <li>
                   <span className="landing-info-icon"><Icon name="pin" /></span>
-                  <div><strong>{extra.addressLabel}</strong><span>{extra.address}</span></div>
+                  <div><strong>{extra.addressLabel}</strong><span>{contactAddress}</span></div>
                 </li>
                 <li>
                   <span className="landing-info-icon"><Icon name="clock" /></span>
-                  <div><strong>{extra.hoursLabel}</strong><span>{extra.hours}</span></div>
+                  <div><strong>{extra.hoursLabel}</strong><span>{contactHours}</span></div>
                 </li>
                 <li>
                   <span className="landing-info-icon"><Icon name="whatsapp" /></span>
@@ -415,8 +424,8 @@ export default function LandingPage() {
             <Link href="/login">{t("footerNavStaff")}</Link>
           </nav>
           <div className="footer-info">
-            <p><Icon name="pin" /><span>{t("footerAddress")}</span></p>
-            <p><Icon name="clock" /><span>{t("footerHours")}</span></p>
+            <p><Icon name="pin" /><span>{contactAddress}</span></p>
+            <p><Icon name="clock" /><span>{contactHours}</span></p>
           </div>
         </div>
         <div className="shell footer-bottom">
