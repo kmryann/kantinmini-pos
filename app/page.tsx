@@ -27,34 +27,34 @@ export default function LandingPage() {
           orderCta: "Pesan",
           ctaWhatsapp: "Chat WhatsApp",
           aboutLabel: "Tentang kami",
-          aboutTitle: "Kantin kecil, perhatian besar.",
+          aboutTitle: "Resep Rumahan, Rasa Juara.",
           aboutLead:
-            "Kantin Mini adalah tempat makan sederhana di lingkunganmu. Kami memasak makanan yang familiar, menyajikannya cepat, dan membuat siapa pun merasa seperti makan di rumah.",
+            "Berawal dari resep keluarga yang dicintai, Kantin Mini hadir di Bandung untuk menyajikan masakan harian dengan cita rasa Nusantara yang jujur dan apa adanya. Di sini, kami percaya makanan enak tidak harus mahal, yang penting bersih, porsinya pas, dan disajikan dengan senyuman hangat.",
           slides: [
             {
-              image: "/assets/menu/nasi-goreng.webp",
-              title: "Kantin lingkungan",
-              body: "Tempat singgah yang akrab, dengan meja untuk makan santai atau pesan dibawa pulang.",
+              image: "/assets/about/about-1.webp",
+              title: "Banyak Pilihan Menu",
+              body: "Mulai dari Katsu, Pempek Palembang asli, mie/pasta, sampai aneka minuman segar biar tidak bosan makan itu-itu saja.",
             },
             {
-              image: "/assets/menu/nasi-ayam.webp",
-              title: "Masakan rumahan",
-              body: "Menu yang familiar, bumbu yang tidak berlebihan, dan porsi yang cukup untuk makan siang.",
+              image: "/assets/about/about-2.webp",
+              title: "Ramah di Kantong",
+              body: "Sajian berkualitas porsi kenyang dengan harga mahasiswa dan anak kos. Makan enak tidak perlu menunggu tanggal muda!",
             },
             {
-              image: "/assets/menu/kopi-susu.webp",
+              image: "/assets/about/about-3.webp",
               title: "Dibuat saat dipesan",
-              body: "Pesanan masuk dapur setelah dibayar. Kopi, nasi, dan lauk disiapkan segar untukmu.",
+              body: "Pesananmu diolah dan disajikan dengan cepat agar tidak perlu menunggu lama saat lapar melanda.",
             },
           ],
           locationLabel: "Lokasi",
-          locationTitle: "Mampir, atau pesan dari meja.",
+          locationTitle: "Mampir ke Kantin Mini",
           locationLead:
-            "Kami ada di lantai 1, dekat lobi. Singgah untuk makan langsung atau pindai QR di meja untuk memesan.",
+            "Yuk mampir! Kami siap menyambut Anda",
           addressLabel: "Alamat",
           address: "Jl. Melati No. 8, Gedung A, Lantai 1",
           hoursLabel: "Jam operasional",
-          hours: "Senin–Sabtu, 07.00–15.00",
+          hours: "Senin–Jumat, 08.00–19.00",
           whatsappLabel: "WhatsApp",
           openMap: "Buka di Google Maps",
           contactLabel: "Kontak",
@@ -236,13 +236,13 @@ export default function LandingPage() {
                   <span>{contactHours}</span>
                 </li>
                 <li>
-                  <Icon name="users" />
-                  <span>{t("metaTables")}</span>
+                  <Icon name="pin" />
+                  <span>{t("locAddress")}</span>
                 </li>
-                <li>
+                {/* <li>
                   <Icon name="wallet" />
                   <span>{t("metaPay")}</span>
-                </li>
+                </li> */}
               </ul>
             </div>
 
@@ -386,16 +386,16 @@ export default function LandingPage() {
                   <Icon name="whatsapp" />
                   <span>WhatsApp {whatsappDisplay}</span>
                 </a>
-                <span className="contact-note">{extra.contactNote}</span>
+                {/* <span className="contact-note">{extra.contactNote}</span> */}
               </div>
               <div className="contact-side">
                 <div className="social-block">
                   <strong>{extra.socialTitle}</strong>
                   <div className="social-row">
-                    <a href="https://instagram.com/kantinmini" target="_blank" rel="noreferrer">
+                    <a href="https://instagram.com/kantinmini.id" target="_blank" rel="noreferrer">
                       <Icon name="instagram" /><span>{extra.instagram}</span>
                     </a>
-                    <a href="https://tiktok.com/@kantinmini" target="_blank" rel="noreferrer">
+                    <a href="https://tiktok.com/@kantinmini.id" target="_blank" rel="noreferrer">
                       <Icon name="tiktok" /><span>{extra.tiktok}</span>
                     </a>
                   </div>

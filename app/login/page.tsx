@@ -134,7 +134,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="login-demo">
+          {/* <div className="login-demo">
             <div className="login-demo-head">
               <h2>{t("login.demo")}</h2>
               <span>{t("login.demoBadge")}</span>
@@ -157,7 +157,7 @@ export default function LoginPage() {
                 <small>Admin</small>
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <p className="login-footer">{t("login.footer")}</p>

@@ -38,12 +38,12 @@ export function CustomerHeader() {
         </Link>
         <h1 className="cust-header-title">{title}</h1>
         <div className="cust-header-actions">
-          <span className={`context-pill is-${context.type}`}>
+          {/* <span className={`context-pill is-${context.type}`}>
             <Icon name={context.type === "takeaway" ? "bag" : "pin"} />
             <span className="context-pill-label">{contextType}</span>
             <span className="context-pill-divider" aria-hidden="true" />
             <strong>{contextLabel}</strong>
-          </span>
+          </span> */}
           <button className="cart-link" type="button" aria-label={t("common.cart")} onClick={openCart}>
             <Icon name="cart" />
             <span className="cart-count" data-empty={cartCount === 0}>
