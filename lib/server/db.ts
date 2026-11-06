@@ -317,12 +317,42 @@ async function seed(db: PGlite) {
 }
 
 async function initialize() {
-  const dataDir = process.env.PGLITE_DATA_DIR || path.join(process.cwd(), ".data", "pglite");
+  const isServerless = Boolean(
+    process.env.VERCEL ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.NETLIFY ||
+    process.env.NODE_ENV === "production" && !process.env.PGLITE_DATA_DIR
+  );
+
+  const defaultDir = isServerless
+    ? "/tmp/pglite"
+    : path.join(process.cwd(), ".data", "pglite");
+
+  let dataDir = process.env.PGLITE_DATA_DIR || defaultDir;
+
   if (!dataDir.startsWith("memory://")) {
-    await mkdir(path.dirname(dataDir), { recursive: true });
+    try {
+      await mkdir(path.dirname(dataDir), { recursive: true });
+    } catch {
+      try {
+        dataDir = "/tmp/pglite";
+        await mkdir(path.dirname(dataDir), { recursive: true });
+      } catch {
+        dataDir = "memory://";
+      }
+    }
   }
-  const db = new PGlite(dataDir);
-  await db.waitReady;
+
+  let db: PGlite;
+  try {
+    db = new PGlite(dataDir);
+    await db.waitReady;
+  } catch (err) {
+    console.warn("PGlite failed to open on", dataDir, "falling back to memory://", err);
+    db = new PGlite("memory://");
+    await db.waitReady;
+  }
+
   await db.exec(schema);
   await seed(db);
   return db;
