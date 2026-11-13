@@ -21,6 +21,8 @@ type OrderRow = {
   payment_code: string | null;
   payment_reference: string | null;
   qr_url: string | null;
+  note: string | null;
+  fulfillment_time: string | null;
   created_at: string | Date;
   paid_at: string | Date | null;
   expires_at: string | Date | null;
@@ -51,6 +53,8 @@ export function serializeOrder(row: OrderRow, includeToken = false): Order {
     paymentCode: row.payment_code,
     paymentReference: row.payment_reference,
     qrUrl: row.qr_url,
+    note: row.note,
+    fulfillmentTime: row.fulfillment_time,
     ...(includeToken && row.public_token ? { publicToken: row.public_token } : {}),
   };
 }
@@ -90,8 +94,8 @@ export async function createOrder(input: CreateOrderInput, source: OrderSource) 
 
   const menuResult = await db.query<any>("select * from menus");
   const menus = new Map(menuResult.rows.map((row) => [row.id, row]));
-  const table = input.type === "dine-in" ? Number(input.table || 0) : null;
-  if (input.type === "dine-in" && (!Number.isInteger(table) || table < 1 || table > 7)) {
+  const table = input.type === "dine-in" && input.table ? Number(input.table) : null;
+  if (table !== null && (!Number.isInteger(table) || table < 1 || table > 7)) {
     throw new ApiError(400, "Nomor meja harus antara 1 dan 7.");
   }
 
@@ -132,9 +136,9 @@ export async function createOrder(input: CreateOrderInput, source: OrderSource) 
   const result = await db.query<OrderRow>(
     `insert into orders (
       id, code, public_token, customer, type, table_no, items, total, payment,
-      payment_status, order_status, source, payment_code, created_at, paid_at,
-      expires_at, updated_at
-    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$14)
+      payment_status, order_status, source, payment_code, note, fulfillment_time,
+      created_at, paid_at, expires_at, updated_at
+    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$16)
     returning *`,
     [
       id,
@@ -150,6 +154,8 @@ export async function createOrder(input: CreateOrderInput, source: OrderSource) 
       "new",
       source,
       paymentCode,
+      input.note ? String(input.note).slice(0, 500) : null,
+      input.fulfillmentTime || null,
       now.toISOString(),
       paidImmediately ? now.toISOString() : null,
       expiresAt.toISOString(),

@@ -13,6 +13,7 @@ export default function LandingPage() {
   const [slide, setSlide] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pastHero, setPastHero] = useState(false);
   const [site, setSite] = useState<PublicSettings | null>(null);
 
   const extra =
@@ -52,7 +53,7 @@ export default function LandingPage() {
           locationLead:
             "Yuk mampir! Kami siap menyambut Anda",
           addressLabel: "Alamat",
-          address: "Jl. Melati No. 8, Gedung A, Lantai 1",
+          address: "Gang Melong Kaler I no. 1",
           hoursLabel: "Jam operasional",
           hours: "Senin–Jumat, 08.00–19.00",
           whatsappLabel: "WhatsApp",
@@ -61,7 +62,7 @@ export default function LandingPage() {
           contactTitle: "Ada pertanyaan? Chat kami.",
           contactLead:
             "Untuk pertanyaan menu, pesanan, atau kerja sama, WhatsApp adalah jalur tercepat. Kami balas pada jam operasional.",
-          contactNote: "Balasan pada Senin–Sabtu, 07.00–15.00.",
+          contactNote: "Balasan pada Senin–Jumat, 08.00–19.00.",
           socialTitle: "Ikuti kantin kami",
           instagram: "Instagram",
           tiktok: "TikTok",
@@ -79,41 +80,41 @@ export default function LandingPage() {
           orderCta: "Order",
           ctaWhatsapp: "Chat on WhatsApp",
           aboutLabel: "About us",
-          aboutTitle: "A small canteen with a lot of care.",
+          aboutTitle: "Home-Style Recipes, Champion Flavor.",
           aboutLead:
-            "Kantin Mini is a simple neighborhood canteen. We cook familiar food, serve it quickly, and make everyone feel at home.",
+            "Rooted in beloved family recipes, Kantin Mini is here in Bandung to serve daily comfort meals with honest, authentic Indonesian flavors. We believe good food doesn't have to be expensive—what matters is that it's clean, generously portioned, and served with a warm smile.",
           slides: [
             {
-              image: "/assets/menu/nasi-goreng.webp",
-              title: "Neighborhood canteen",
-              body: "A familiar place to sit down for lunch or grab something to take away.",
+              image: "/assets/about/about-1.webp",
+              title: "Wide Menu Selection",
+              body: "From Katsu, authentic Palembang Pempek, noodles & pasta, to refreshing drinks so you'll never get bored.",
             },
             {
-              image: "/assets/menu/nasi-ayam.webp",
-              title: "Home-style cooking",
-              body: "Familiar dishes, balanced seasoning, and portions that actually fill you up.",
+              image: "/assets/about/about-2.webp",
+              title: "Pocket-Friendly",
+              body: "Quality, satisfying meals at student and boarding-friendly prices. Delicious food doesn't have to wait until payday!",
             },
             {
-              image: "/assets/menu/kopi-susu.webp",
-              title: "Made when you order",
-              body: "Orders reach the kitchen after payment. Rice, sides, and coffee are prepared fresh.",
+              image: "/assets/about/about-3.webp",
+              title: "Made Fresh to Order",
+              body: "Your food is prepared and served quickly so you don't have to wait long when hunger strikes.",
             },
           ],
           locationLabel: "Location",
-          locationTitle: "Drop by, or order from your table.",
+          locationTitle: "Visit Kantin Mini",
           locationLead:
-            "Find us on level 1, near the lobby. Eat in or scan the QR at your table to order.",
+            "Come drop by! We're ready to welcome you.",
           addressLabel: "Address",
-          address: "8 Melati St, Building A, Level 1",
+          address: "Gang Melong Kaler I no. 1",
           hoursLabel: "Opening hours",
-          hours: "Mon–Sat, 07.00–15.00",
+          hours: "Mon–Fri, 08.00–19.00",
           whatsappLabel: "WhatsApp",
           openMap: "Open in Google Maps",
           contactLabel: "Contact",
           contactTitle: "Questions? Chat with us.",
           contactLead:
             "WhatsApp is the fastest way to ask about the menu, an order, or a partnership. We reply during opening hours.",
-          contactNote: "Replies Mon–Sat, 07.00–15.00.",
+          contactNote: "Replies Mon–Fri, 08.00–19.00.",
           socialTitle: "Follow the canteen",
           instagram: "Instagram",
           tiktok: "TikTok",
@@ -122,8 +123,10 @@ export default function LandingPage() {
           footerContact: "Contact",
         };
 
-  const whatsappDisplay = "0851-1769-3117";
-  const whatsappLink = "https://wa.me/6285117693117";
+  const whatsappNumber = (site?.whatsappNumber || "6285117693117").replace(/\D/g, "").replace(/^0/, "62");
+  const whatsappLocal = whatsappNumber.startsWith("62") ? `0${whatsappNumber.slice(2)}` : whatsappNumber;
+  const whatsappDisplay = whatsappLocal.replace(/(\d{4})(\d{4})(\d+)/, "$1-$2-$3");
+  const whatsappLink = `https://wa.me/${whatsappNumber}`;
   const contactAddress = site?.address || extra.address;
   const contactHours = site?.hours || extra.hours;
   const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contactAddress)}`;
@@ -140,10 +143,18 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 12);
+      const hero = document.querySelector<HTMLElement>(".hero");
+      setPastHero(window.scrollY > (hero ? hero.offsetHeight : 600));
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -434,6 +445,11 @@ export default function LandingPage() {
           <LanguageSwitch dark />
         </div>
       </footer>
+
+      <Link className={`landing-order-fab ${pastHero ? "is-visible" : ""}`} href="/order?table=3">
+        <Icon name="utensils" />
+        <span>{t("ctaHow")}</span>
+      </Link>
     </>
   );
 }

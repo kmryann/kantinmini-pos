@@ -705,6 +705,12 @@
   max-height: 86vh;
 }
 
+.sheet.customize-sheet {
+  width: min(700px, 100%);
+  height: min(76vh, 680px);
+  max-height: 88vh;
+}
+
 .detail-sheet .sheet-media {
   height: auto;
   flex: 1 1 auto;
@@ -2199,6 +2205,16 @@
   color: var(--green-deep);
 }
 
+.toast-success {
+  border-color: var(--green);
+  background: var(--green);
+  color: var(--paper);
+}
+
+.toast-success .icon {
+  color: var(--mango);
+}
+
 .toast-error .icon {
   color: #a63c2a;
 }
@@ -2389,7 +2405,8 @@ body.modal-open {
     border-radius: 0;
   }
 
-  .sheet.detail-sheet {
+  .sheet.detail-sheet,
+  .sheet.customize-sheet {
     height: 75vh;
     height: 75dvh;
     max-height: 75vh;
@@ -2775,5 +2792,179 @@ body.cart-open {
   .cart-drawer,
   .cart-drawer-overlay {
     transition: none;
+  }
+}
+
+/* Checkout fulfillment options and QRIS confirmation */
+.checkout-service-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.checkout-service-btn {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--white);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.checkout-service-btn .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.checkout-service-btn.is-selected {
+  border-color: var(--green-deep);
+  background: var(--mint);
+  color: var(--green-deep);
+}
+
+.checkout-qris-modal {
+  width: min(460px, 100%);
+}
+
+.checkout-qris-box {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.checkout-qris-box img {
+  width: min(100%, 320px);
+  max-height: 42vh;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.checkout-qris-box strong {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
+.checkout-qris-box p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .checkout-service-btn {
+    min-height: 42px;
+    font-size: 0.72rem;
+  }
+
+  .checkout-qris-modal {
+    width: 100%;
+  }
+}
+
+/* WhatsApp order summary page */
+.wa-status-hero {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 26px 22px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(242, 184, 75, 0.24), transparent 15rem),
+    var(--green-deep);
+  color: var(--paper);
+  text-align: center;
+}
+
+.wa-status-mark {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--mango);
+  color: var(--ink);
+}
+
+.wa-status-mark .icon {
+  width: 27px;
+  height: 27px;
+  fill: currentColor;
+  stroke: none;
+}
+
+.wa-status-kicker {
+  margin: 4px 0 0;
+  color: rgba(255, 253, 247, 0.62);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.wa-status-hero h2 {
+  max-width: 18ch;
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(1.6rem, 6vw, 2.2rem);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.wa-status-hero > p:not(.wa-status-kicker) {
+  max-width: 42ch;
+  margin: 0;
+  color: rgba(255, 253, 247, 0.72);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.wa-status-ref {
+  margin-top: 3px;
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: var(--mango);
+  font-family: var(--display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.wa-status-details {
+  margin-top: 16px;
+}
+
+.wa-status-page .status-detail-line strong {
+  max-width: 60%;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .wa-status-hero {
+    padding: 22px 16px;
+    border-radius: 18px;
+  }
+
+  .wa-status-mark {
+    width: 52px;
+    height: 52px;
+  }
+
+  .wa-status-hero h2 {
+    font-size: 1.55rem;
   }
 }

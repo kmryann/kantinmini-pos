@@ -105,7 +105,9 @@ export default function ReportsPage() {
   const typeLabel = (row: Transaction) =>
     row.type === "takeaway"
       ? t("label.takeaway")
-      : `${t("label.dineIn")} · ${t("label.table")} ${String(row.table || 1).padStart(2, "0")}`;
+      : row.table
+        ? `${t("label.dineIn")} · ${t("label.table")} ${String(row.table).padStart(2, "0")}`
+        : t("label.dineIn");
 
   const statusBadge = (value: string) => {
     const map: Record<string, [string, string]> = {

@@ -2,53 +2,186 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Icon } from "@/components/Icon";
 import { useCustomer } from "@/components/CustomerProvider";
 import { useToast } from "@/components/ToastProvider";
 import { api } from "@/lib/api-client";
+import type { PublicSettings } from "@/lib/api-types";
 import { formatIDR } from "@/lib/format";
 import { localized, orderItemSummary, optionLabelsFor } from "@/lib/order-utils";
 import { useMenuData } from "@/lib/use-menu";
+import { useModalBack } from "@/lib/use-modal-back";
 import { useLanguage } from "@/lib/i18n";
-import { saveActiveOrderRef } from "@/lib/customer-storage";
+import { createWhatsAppReference, saveActiveOrderRef, saveWhatsAppOrder } from "@/lib/customer-storage";
+
+const nextTime = () => {
+  const date = new Date(Date.now() + 30 * 60000);
+  const minutes = Math.ceil(date.getMinutes() / 5) * 5;
+  date.setMinutes(minutes, 0, 0);
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+};
+
+const normalizeWhatsapp = (value: string) =>
+  String(value || "").replace(/[^\d]/g, "").replace(/^0/, "62") || "6285117693117";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { t, lang } = useLanguage();
   const toast = useToast();
-  const { cart, context, cartTotal, clearCart, updateLine } = useCustomer();
+  const { cart, context, cartTotal, clearCart, updateLine, removeLine } = useCustomer();
   const { menuById, loading: menuLoading } = useMenuData();
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [name, setName] = useState("");
   const [method, setMethod] = useState<"QRIS" | "Cash">("QRIS");
+  const [orderType, setOrderType] = useState<"dine-in" | "takeaway">(context.type);
+  const [fulfillmentTime, setFulfillmentTime] = useState("");
+  const [orderNote, setOrderNote] = useState("");
   const [nameError, setNameError] = useState(false);
+  const [timeError, setTimeError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [qrisOpen, setQrisOpen] = useState(false);
+
+  useModalBack(qrisOpen, () => setQrisOpen(false));
 
   useEffect(() => {
     document.title = `${t("checkout.title")} · Kantin Mini`;
   }, [lang, t]);
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
+  useEffect(() => {
+    setFulfillmentTime(nextTime());
+    api.settings().then(setSettings).catch(() => setSettings(null));
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("modal-open", qrisOpen);
+    return () => document.body.classList.remove("modal-open");
+  }, [qrisOpen]);
+
+  const isWhatsapp = settings?.orderMode === "whatsapp";
+  const typeLabel = orderType === "takeaway" ? t("common.takeaway") : t("common.dineIn");
+  const timeLabel = orderType === "takeaway"
+    ? (lang === "id" ? "Jam ambil" : "Pickup time")
+    : (lang === "id" ? "Jam tiba" : "Arrival time");
+
+  const itemLines = useMemo(
+    () =>
+      cart.map((line) => {
+        const item = menuById(line.menuId);
+        const nameValue = line.name || item?.name;
+        const price = Number(line.price ?? item?.price ?? 0);
+        const options = line.optionLabels?.length
+          ? orderItemSummary({ optionLabels: line.optionLabels }, lang)
+          : item
+            ? optionLabelsFor(item, line.options).map((label) => localized(label, lang)).join(" · ")
+            : "";
+        return {
+          menuId: line.menuId,
+          qty: line.qty,
+          options: line.options,
+          note: line.note,
+          name: nameValue,
+          price,
+          optionsLabel: options,
+        };
+      }),
+    [cart, menuById, lang],
+  );
+
+  const validate = () => {
+    let valid = true;
     if (!name.trim()) {
       setNameError(true);
-      return;
+      valid = false;
+    }
+    if (!fulfillmentTime) {
+      setTimeError(true);
+      valid = false;
     }
     if (!cart.length) {
       toast(t("payment.emptyCart"), "error");
+      valid = false;
+    }
+    return valid;
+  };
+
+  const sendToWhatsapp = () => {
+    if (!validate()) {
+      setQrisOpen(false);
       return;
     }
+    const number = normalizeWhatsapp(settings?.whatsappNumber || "6285117693117");
+    const lines = itemLines.map((line) => {
+      const extras = [
+        line.optionsLabel ? ` (${line.optionsLabel})` : "",
+        line.note ? ` — ${line.note}` : "",
+      ].join("");
+      return `- ${line.qty}x ${localized(line.name, lang)}${extras}`;
+    });
+    const message = [
+      "Halo kantinmini!",
+      `Nama: ${name.trim()}`,
+      `Tipe pesanan: ${typeLabel}`,
+      `${timeLabel}: ${fulfillmentTime}`,
+      `Pembayaran: ${method}`,
+      "",
+      "Pesanan:",
+      ...lines,
+      "",
+      `Total: ${formatIDR(cartTotal)}`,
+      `Catatan: ${orderNote.trim() || "-"}`,
+    ].join("\n");
+    const waUrl = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+    saveWhatsAppOrder({
+      reference: createWhatsAppReference(),
+      customer: name.trim(),
+      type: orderType,
+      time: fulfillmentTime,
+      payment: method,
+      paymentClaimed: method === "QRIS",
+      note: orderNote.trim(),
+      total: cartTotal,
+      items: itemLines.map((line) => ({
+        menuId: line.menuId,
+        name: line.name || { id: line.menuId, en: line.menuId },
+        qty: line.qty,
+        price: line.price,
+        optionsLabel: line.optionsLabel,
+        note: line.note,
+      })),
+      createdAt: new Date().toISOString(),
+      waUrl,
+    });
+    clearCart();
+    setQrisOpen(false);
+    window.location.assign("/whatsapp-status?send=1");
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!validate()) return;
+    setNameError(false);
+    setTimeError(false);
+
+    if (isWhatsapp) {
+      if (method === "QRIS") {
+        setQrisOpen(true);
+      } else {
+        sendToWhatsapp();
+      }
+      return;
+    }
+
     if (menuLoading) {
       toast(lang === "id" ? "Menu masih dimuat." : "Menu is still loading.", "error");
       return;
     }
-    setNameError(false);
     setSubmitting(true);
     try {
       const order = await api.createOrder({
         customer: name.trim(),
-        type: context.type,
-        table: context.type === "dine-in" ? context.table : null,
+        type: orderType,
+        table: orderType === "dine-in" ? context.table : null,
         items: cart.map((line) => ({
           menuId: line.menuId,
           qty: line.qty,
@@ -56,6 +189,8 @@ export default function CheckoutPage() {
           note: line.note,
         })),
         payment: method,
+        note: orderNote.trim(),
+        fulfillmentTime,
       });
       if (!order.publicToken) throw new Error("Token pesanan tidak diterima.");
       saveActiveOrderRef({ id: order.id, code: order.code, token: order.publicToken });
@@ -68,6 +203,14 @@ export default function CheckoutPage() {
       setSubmitting(false);
     }
   };
+
+  const primaryLabel = submitting
+    ? (lang === "id" ? "Memproses…" : "Processing…")
+    : isWhatsapp
+      ? method === "QRIS"
+        ? (lang === "id" ? "Lanjut ke QRIS" : "Continue to QRIS")
+        : (lang === "id" ? "Pesan via WhatsApp" : "Order via WhatsApp")
+      : t("payment.pay");
 
   return (
     <main className="cust-main cust-narrow cust-page checkout-page">
@@ -94,50 +237,88 @@ export default function CheckoutPage() {
             <section className="payment-card checkout-summary-card">
               <h2><Icon name="receipt" /><span>{t("payment.summary")}</span></h2>
               <div className="checkout-item-list">
-                {cart.map((line) => {
-                  const item = menuById(line.menuId);
-                  const name = line.name || item?.name;
-                  const image = line.image || item?.image || "/assets/menu/placeholder.webp";
-                  const price = Number(line.price ?? item?.price ?? 0);
-                  const options = line.optionLabels?.length
-                    ? orderItemSummary({ optionLabels: line.optionLabels }, lang)
-                    : item
-                      ? optionLabelsFor(item, line.options).map((label) => localized(label, lang)).join(" · ")
-                      : "";
-                  return (
-                    <div className="checkout-item" key={line.lineId}>
-                      <div className="checkout-item-thumb">
-                        <img src={image} alt={localized(name, lang)} width={800} height={800} decoding="async" />
-                      </div>
-                      <div className="checkout-item-copy">
-                        <h3>{localized(name, lang)}</h3>
-                        {options ? <p>{options}</p> : null}
-                        {line.note ? <p className="cart-note">{t("cart.note")}: {line.note}</p> : null}
-                        <div className="checkout-item-controls">
-                          <div className="qty-stepper checkout-stepper">
-                            <button
-                              type="button"
-                              aria-label="Kurangi jumlah"
-                              disabled={line.qty <= 1}
-                              onClick={() => updateLine(line.lineId, { qty: Math.max(1, line.qty - 1) })}
-                            >
-                              <Icon name="minus" />
-                            </button>
-                            <span>{line.qty}</span>
-                            <button
-                              type="button"
-                              aria-label="Tambah jumlah"
-                              onClick={() => updateLine(line.lineId, { qty: line.qty + 1 })}
-                            >
-                              <Icon name="plus" />
-                            </button>
-                          </div>
-                          <strong className="checkout-item-price">{formatIDR(price * line.qty)}</strong>
+                {itemLines.map((line, index) => (
+                  <div className="checkout-item" key={cart[index].lineId}>
+                    <div className="checkout-item-thumb">
+                      <img src={cart[index].image || menuById(line.menuId)?.image || "/assets/menu/placeholder.webp"} alt={localized(line.name, lang)} width={800} height={800} decoding="async" />
+                    </div>
+                    <div className="checkout-item-copy">
+                      <h3>{localized(line.name, lang)}</h3>
+                      {line.optionsLabel ? <p>{line.optionsLabel}</p> : null}
+                      {line.note ? <p className="cart-note">{t("cart.note")}: {line.note}</p> : null}
+                      <div className="checkout-item-controls">
+                        <div className="qty-stepper checkout-stepper">
+                          <button
+                            type="button"
+                            aria-label="Kurangi jumlah"
+                            onClick={() => {
+                              if (line.qty > 1) {
+                                updateLine(cart[index].lineId, { qty: line.qty - 1 });
+                              } else {
+                                removeLine(cart[index].lineId);
+                                toast(t("cart.removed"));
+                              }
+                            }}
+                          >
+                            <Icon name="minus" />
+                          </button>
+                          <span>{line.qty}</span>
+                          <button
+                            type="button"
+                            aria-label="Tambah jumlah"
+                            onClick={() => updateLine(cart[index].lineId, { qty: line.qty + 1 })}
+                          >
+                            <Icon name="plus" />
+                          </button>
                         </div>
+                        <strong className="checkout-item-price">{formatIDR(line.price * line.qty)}</strong>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="payment-card">
+              <h2><Icon name="bag" /><span>{lang === "id" ? "Detail pesanan" : "Order details"}</span></h2>
+              <div className="checkout-service-options" role="group" aria-label={lang === "id" ? "Tipe pesanan" : "Order type"}>
+                {(["dine-in", "takeaway"] as const).map((value) => (
+                  <button
+                    key={value}
+                    className={`checkout-service-btn ${orderType === value ? "is-selected" : ""}`}
+                    type="button"
+                    onClick={() => setOrderType(value)}
+                  >
+                    <Icon name={value === "takeaway" ? "bag" : "utensils"} />
+                    <span>{value === "takeaway" ? t("common.takeaway") : t("common.dineIn")}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="pay-field" style={{ marginTop: 14 }}>
+                <label htmlFor="checkout-time">{timeLabel}</label>
+                <input
+                  className="input"
+                  id="checkout-time"
+                  type="time"
+                  value={fulfillmentTime}
+                  onChange={(event) => {
+                    setFulfillmentTime(event.target.value);
+                    if (event.target.value) setTimeError(false);
+                  }}
+                  required
+                />
+                {timeError ? <span className="field-error is-visible">{lang === "id" ? "Jam wajib diisi." : "Time is required."}</span> : null}
+              </div>
+              <div className="pay-field" style={{ marginTop: 14 }}>
+                <label htmlFor="checkout-note">{lang === "id" ? "Catatan (opsional)" : "Note (optional)"}</label>
+                <textarea
+                  className="note-field"
+                  id="checkout-note"
+                  value={orderNote}
+                  onChange={(event) => setOrderNote(event.target.value)}
+                  placeholder={lang === "id" ? "Contoh: tidak pedas, tanpa es" : "Example: not spicy, no ice"}
+                  maxLength={300}
+                />
               </div>
             </section>
 
@@ -188,14 +369,62 @@ export default function CheckoutPage() {
                   <small>{t("cart.total")}</small>
                   <strong>{formatIDR(cartTotal)}</strong>
                 </div>
-                <button className="btn btn-primary" type="submit" disabled={submitting}>
-                  {submitting ? (lang === "id" ? "Memproses…" : "Processing…") : t("payment.pay")}
+                <button className="btn btn-primary" type="submit" disabled={submitting || !settings}>
+                  {!settings ? (lang === "id" ? "Memuat…" : "Loading…") : primaryLabel}
                 </button>
               </div>
             </div>
           </form>
         </>
       )}
+
+      {qrisOpen ? (
+        <div className="modal is-open" role="dialog" aria-modal="true" aria-labelledby="checkout-qris-title">
+          <div className="modal-card checkout-qris-modal">
+            <div className="modal-head">
+              <div>
+                <h2 id="checkout-qris-title">{lang === "id" ? "Pembayaran QRIS" : "QRIS payment"}</h2>
+                <p>{lang === "id" ? "Pindai QRIS, lalu tekan tombol setelah membayar." : "Scan the QRIS, then confirm once paid."}</p>
+              </div>
+              <button className="icon-btn" type="button" aria-label={t("common.close")} onClick={() => setQrisOpen(false)}>
+                <Icon name="x" />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="checkout-qris-box">
+                <img
+                  src={`/api/qris?amount=${cartTotal}`}
+                  alt="QRIS Kantin Mini"
+                  width={800}
+                  height={800}
+                  decoding="async"
+                  onError={(event) => {
+                    if (event.currentTarget.dataset.fallback) return;
+                    event.currentTarget.dataset.fallback = "1";
+                    event.currentTarget.src = "/assets/qr/new-qris.jpeg";
+                  }}
+                />
+                <strong>{formatIDR(cartTotal)}</strong>
+                <p>{t("status.qrisDesc")}</p>
+              </div>
+            </div>
+            <div className="modal-foot">
+              <button className="btn btn-outline" type="button" onClick={() => setQrisOpen(false)}>{t("common.back")}</button>
+              <a
+                className="btn btn-outline"
+                href={`/api/qris?amount=${cartTotal}&download=1`}
+                download={`qris-kantinmini-${cartTotal}.png`}
+              >
+                <Icon name="download" />
+                <span>{lang === "id" ? "Unduh QR" : "Download QR"}</span>
+              </a>
+              <button className="btn btn-primary" type="button" onClick={sendToWhatsapp}>
+                {lang === "id" ? "Saya sudah bayar" : "I have paid"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

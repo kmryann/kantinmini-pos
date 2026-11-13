@@ -92,3 +92,49 @@ export function clearActiveOrderRef() {
     // Storage may be unavailable.
   }
 }
+
+export type WhatsAppOrderLine = {
+  menuId: string;
+  name: { id: string; en: string };
+  qty: number;
+  price: number;
+  optionsLabel: string;
+  note: string;
+};
+
+export type WhatsAppOrderSnapshot = {
+  reference: string;
+  customer: string;
+  type: "dine-in" | "takeaway";
+  time: string;
+  payment: "QRIS" | "Cash";
+  paymentClaimed: boolean;
+  note: string;
+  total: number;
+  items: WhatsAppOrderLine[];
+  createdAt: string;
+  waUrl: string;
+};
+
+export const WHATSAPP_ORDER_KEY = "kantin-wa-order";
+
+export function readWhatsAppOrder(): WhatsAppOrderSnapshot | null {
+  try {
+    const value = JSON.parse(localStorage.getItem(WHATSAPP_ORDER_KEY) || "null");
+    return value && value.reference && value.waUrl ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveWhatsAppOrder(order: WhatsAppOrderSnapshot) {
+  try {
+    localStorage.setItem(WHATSAPP_ORDER_KEY, JSON.stringify(order));
+  } catch {
+    // Storage may be unavailable.
+  }
+}
+
+export function createWhatsAppReference() {
+  return `WA-${String(Date.now()).slice(-6)}`;
+}

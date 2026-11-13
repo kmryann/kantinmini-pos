@@ -192,10 +192,9 @@ export default function MenusPage() {
     const currentSort = menus[index].sortOrder ?? index;
     const swapSort = menus[swap].sortOrder ?? swap;
     try {
-      const payload = await api.updateMenu(menus[index].id, { sortOrder: swapSort });
-      await api.updateMenu(menus[swap].id, { sortOrder: currentSort });
+      await api.updateMenu(menus[index].id, { sortOrder: swapSort, category: menus[index].category });
+      const payload = await api.updateMenu(menus[swap].id, { sortOrder: currentSort, category: menus[swap].category });
       applyPayload(payload);
-      void reload();
     } catch (reason: any) {
       toast(reason?.message || "Urutan gagal disimpan.", "error");
     }
@@ -205,14 +204,23 @@ export default function MenusPage() {
     const index = categories.findIndex((category) => category.id === id);
     const swap = index + direction;
     if (index < 0 || swap < 0 || swap >= categories.length) return;
-    const currentSort = categories[index].sortOrder ?? index;
-    const swapSort = categories[swap].sortOrder ?? swap;
+    const next = [...categories];
+    [next[index], next[swap]] = [next[swap], next[index]];
+    const ordered = next.map((category, order) => ({ ...category, sortOrder: order }));
+    setCategories(ordered);
     try {
-      await api.updateCategory(categories[index].id, { sortOrder: swapSort });
-      await api.updateCategory(categories[swap].id, { sortOrder: currentSort });
-      void reload();
+      let payload: MenuPayload | null = null;
+      for (const category of ordered) {
+        payload = await api.updateCategory(category.id, {
+          name: category.name,
+          icon: category.icon,
+          sortOrder: category.sortOrder,
+        });
+      }
+      if (payload) applyPayload(payload);
     } catch (reason: any) {
       toast(reason?.message || "Urutan gagal disimpan.", "error");
+      void reload();
     }
   };
 

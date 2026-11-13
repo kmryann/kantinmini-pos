@@ -1,4 +1,5 @@
 import path from "node:path";
+import os from "node:os";
 import { mkdir } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 import { KANTIN_DATA } from "@/lib/data";
@@ -55,12 +56,16 @@ const schema = `
     payment_code text,
     payment_reference text,
     qr_url text,
+    note text,
+    fulfillment_time text,
     created_at timestamptz not null default now(),
     paid_at timestamptz,
     expires_at timestamptz,
     updated_at timestamptz not null default now()
   );
 
+  alter table orders add column if not exists note text;
+  alter table orders add column if not exists fulfillment_time text;
   create index if not exists orders_created_idx on orders (created_at desc);
   create index if not exists orders_payment_status_idx on orders (payment_status);
   create index if not exists orders_public_token_idx on orders (public_token);
@@ -96,10 +101,10 @@ const schema = `
 
 export const DEFAULT_SETTINGS: AppSettings = {
   name: "Kantin Mini",
-  tagline: "Kantin lingkungan, rasa rumahan.",
-  address: "Jl. Melati No. 8, Gedung A, Lantai 1",
-  hours: "Senin–Sabtu, 07.00–15.00",
-  description: "Kantin lingkungan dengan rasa rumahan. Pesan dari meja, bayar caramu.",
+  tagline: "Resep Rumahan, Rasa Juara.",
+  address: "Gang Melong Kaler I no. 1",
+  hours: "Senin–Jumat, 08.00–19.00",
+  description: "Masakan harian dengan cita rasa Nusantara yang jujur dan ramah di kantong.",
   logo: "/assets/favicon.svg",
   receiptWidth: "80",
   autoKitchen: true,
@@ -108,6 +113,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   midtransClientKey: "",
   midtransServerKey: "",
   midtransWebhook: "",
+  orderMode: "whatsapp",
+  whatsappNumber: "6285117693117",
 };
 
 const menuById = (id: string) => KANTIN_DATA.menu.find((item: any) => item.id === id);
@@ -159,6 +166,8 @@ const insertOrder = async (db: any, order: {
   paymentCode?: string | null;
   paymentReference?: string | null;
   qrUrl?: string | null;
+  note?: string | null;
+  fulfillmentTime?: string | null;
 }) => {
   const id = crypto.randomUUID();
   const total = order.total ?? totalItems(order.items);
@@ -166,8 +175,8 @@ const insertOrder = async (db: any, order: {
     `insert into orders (
       id, code, public_token, customer, type, table_no, items, total, payment,
       payment_status, order_status, source, payment_code, payment_reference, qr_url,
-      created_at, paid_at, expires_at, updated_at
-    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$16)`,
+      note, fulfillment_time, created_at, paid_at, expires_at, updated_at
+    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$18)`,
     [
       id,
       order.code,
@@ -184,6 +193,8 @@ const insertOrder = async (db: any, order: {
       order.paymentCode || null,
       order.paymentReference || null,
       order.qrUrl || null,
+      order.note || null,
+      order.fulfillmentTime || null,
       order.createdAt.toISOString(),
       order.paidAt ? order.paidAt.toISOString() : null,
       order.expiresAt ? order.expiresAt.toISOString() : null,
@@ -320,13 +331,12 @@ async function initialize() {
   const isServerless = Boolean(
     process.env.VERCEL ||
     process.env.AWS_LAMBDA_FUNCTION_NAME ||
-    process.env.NETLIFY ||
-    process.env.NODE_ENV === "production" && !process.env.PGLITE_DATA_DIR
+    process.env.NETLIFY
   );
 
   const defaultDir = isServerless
     ? "/tmp/pglite"
-    : path.join(process.cwd(), ".data", "pglite");
+    : path.join(os.homedir(), ".local", "share", "kantinmini", "pglite");
 
   let dataDir = process.env.PGLITE_DATA_DIR || defaultDir;
 

@@ -9,24 +9,28 @@ type MenuState = MenuPayload & {
   error: string | null;
 };
 
-export function useMenuData() {
+let menuCache: MenuPayload | null = null;
+
+export function useMenuData(initialData?: MenuPayload) {
+  const initial = initialData || menuCache;
   const [state, setState] = useState<MenuState>({
-    categories: [],
-    menu: [],
-    loading: true,
+    categories: initial?.categories || [],
+    menu: initial?.menu || [],
+    loading: !initial,
     error: null,
   });
 
   const reload = useCallback(async () => {
     try {
       const data = await api.menu();
+      menuCache = data;
       setState({ ...data, loading: false, error: null });
       return data;
     } catch (error: any) {
       setState((current) => ({
         ...current,
         loading: false,
-        error: error?.message || "Menu gagal dimuat.",
+        error: current.menu.length ? null : error?.message || "Menu gagal dimuat.",
       }));
       return null;
     }

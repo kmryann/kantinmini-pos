@@ -78,6 +78,8 @@ export type Order = {
   paymentCode: string | null;
   paymentReference: string | null;
   qrUrl: string | null;
+  note: string | null;
+  fulfillmentTime?: string | null;
   publicToken?: string;
 };
 
@@ -87,6 +89,8 @@ export type CreateOrderInput = {
   table?: number | null;
   items: { menuId: string; qty: number; options?: string[]; note?: string }[];
   payment: PaymentMethod;
+  note?: string | null;
+  fulfillmentTime?: string | null;
 };
 
 export type SessionUser = {
@@ -116,9 +120,11 @@ export type AppSettings = {
   midtransClientKey: string;
   midtransServerKey: string;
   midtransWebhook: string;
+  orderMode: "cashier" | "whatsapp";
+  whatsappNumber: string;
 };
 
-export type PublicSettings = Pick<AppSettings, "name" | "tagline" | "address" | "hours" | "description" | "logo"> & {
+export type PublicSettings = Pick<AppSettings, "name" | "tagline" | "address" | "hours" | "description" | "logo" | "orderMode" | "whatsappNumber"> & {
   midtransConfigured: boolean;
 };
 

@@ -8,12 +8,14 @@ import { useToast } from "@/components/ToastProvider";
 import { KANTIN_DATA } from "@/lib/data";
 import { localized, orderItemSummary } from "@/lib/order-utils";
 import { useLanguage } from "@/lib/i18n";
+import { useModalBack } from "@/lib/use-modal-back";
 
 export function CartDrawer() {
   const { t, lang } = useLanguage();
   const toast = useToast();
   const { cart, cartOpen, cartTotal, closeCart, updateLine, removeLine } = useCustomer();
   const itemCount = cart.reduce((sum, line) => sum + line.qty, 0);
+  useModalBack(cartOpen, closeCart);
 
   useEffect(() => {
     document.body.classList.toggle("cart-open", cartOpen);
@@ -99,7 +101,14 @@ export function CartDrawer() {
                             <button
                               type="button"
                               aria-label="Kurangi jumlah"
-                              onClick={() => updateLine(line.lineId, { qty: Math.max(1, line.qty - 1) })}
+                              onClick={() => {
+                                if (line.qty > 1) {
+                                  updateLine(line.lineId, { qty: line.qty - 1 });
+                                } else {
+                                  removeLine(line.lineId);
+                                  toast(t("cart.removed"));
+                                }
+                              }}
                             >
                               <Icon name="minus" />
                             </button>

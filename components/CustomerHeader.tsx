@@ -10,6 +10,7 @@ const pageTitles: Record<string, { id: string; en: string }> = {
   "/order": { id: "Menu", en: "Menu" },
   "/cart": { id: "Keranjang", en: "Cart" },
   "/checkout": { id: "Checkout", en: "Checkout" },
+  "/whatsapp-status": { id: "Status WhatsApp", en: "WhatsApp Status" },
   "/status": { id: "Status Pesanan", en: "Order Status" },
 };
 

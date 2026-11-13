@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id">
+    <html lang="id" data-scroll-behavior="smooth">
       <body className="min-h-screen font-body text-ink antialiased">
         <div dangerouslySetInnerHTML={{ __html: iconSprite }} />
         <Providers>{children}</Providers>

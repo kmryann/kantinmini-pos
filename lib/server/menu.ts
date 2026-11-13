@@ -161,13 +161,16 @@ export async function createCategory(input: any) {
 
 export async function updateCategory(id: string, input: any) {
   const db = await getDb();
+  const existing = await db.query<CategoryRow>("select * from categories where id = $1", [id]);
+  const current = existing.rows[0];
+  if (!current) throw new ApiError(404, "Kategori tidak ditemukan.");
   await db.query(
     "update categories set name_id=$1, name_en=$2, icon=$3, sort_order=$4 where id=$5",
     [
-      input.name?.id || "",
-      input.name?.en || input.name?.id || "",
-      input.icon || "utensils",
-      Number(input.sortOrder || 0),
+      input.name?.id ?? current.name_id,
+      input.name?.en ?? current.name_en,
+      input.icon ?? current.icon,
+      input.sortOrder !== undefined ? Number(input.sortOrder) : current.sort_order,
       id,
     ],
   );

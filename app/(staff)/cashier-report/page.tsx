@@ -41,7 +41,9 @@ export default function CashierReportPage() {
   const typeLabel = (row: { type: string; table: number | null }) =>
     row.type === "takeaway"
       ? t("label.takeaway")
-      : `${t("label.dineIn")} · ${t("label.table")} ${String(row.table || 1).padStart(2, "0")}`;
+      : row.table
+        ? `${t("label.dineIn")} · ${t("label.table")} ${String(row.table).padStart(2, "0")}`
+        : t("label.dineIn");
 
   return (
     <>

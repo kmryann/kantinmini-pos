@@ -54,7 +54,9 @@ export default function OrdersPage() {
   const typeLabel = (order: Order) =>
     order.type === "takeaway"
       ? t("label.takeaway")
-      : `${t("label.table")} ${String(order.table || 1).padStart(2, "0")}`;
+      : order.table
+        ? `${t("label.table")} ${String(order.table).padStart(2, "0")}`
+        : t("label.dineIn");
 
   const sourceLabel = (order: Order) => (order.source === "POS" ? t("orders.sourcePos") : t("orders.sourceQr"));
 

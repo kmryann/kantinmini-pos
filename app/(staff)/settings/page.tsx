@@ -7,7 +7,7 @@ import { api } from "@/lib/api-client";
 import type { AppSettings } from "@/lib/api-types";
 import { useLanguage } from "@/lib/i18n";
 
-type Tab = "profile" | "tables" | "printer" | "payment";
+type Tab = "profile" | "tables" | "printer" | "payment" | "flow";
 
 export default function SettingsPage() {
   const { t, lang } = useLanguage();
@@ -28,6 +28,8 @@ export default function SettingsPage() {
   const [clientKey, setClientKey] = useState("SB-Mid-client-KantinMiniDemo");
   const [serverKey, setServerKey] = useState("SB-Mid-server-KantinMiniDemo");
   const [webhook, setWebhook] = useState("https://kantinmini.id/api/midtrans/webhook");
+  const [orderMode, setOrderMode] = useState<"cashier" | "whatsapp">("cashier");
+  const [whatsappNumber, setWhatsappNumber] = useState("6285117693117");
 
   useEffect(() => {
     document.title = "Pengaturan · Kantin Mini";
@@ -50,6 +52,8 @@ export default function SettingsPage() {
         setClientKey(settings.midtransClientKey);
         setServerKey(settings.midtransServerKey);
         setWebhook(settings.midtransWebhook || `${window.location.origin}/api/midtrans/webhook`);
+        setOrderMode(settings.orderMode === "whatsapp" ? "whatsapp" : "cashier");
+        setWhatsappNumber(settings.whatsappNumber || "6285117693117");
       })
       .catch((error: any) => toast(error?.message || "Pengaturan gagal dimuat.", "error"));
   }, [toast]);
@@ -93,11 +97,16 @@ export default function SettingsPage() {
     toast(t("settings.copied"));
   };
 
+  const saveFlow = () => {
+    void saveSettings({ orderMode, whatsappNumber: whatsappNumber.replace(/[^\d]/g, "") }, "flow");
+  };
+
   const tabs: { id: Tab; label: string }[] = [
     { id: "profile", label: t("settings.tabProfile") },
     { id: "tables", label: t("settings.tabTables") },
     { id: "printer", label: t("settings.tabPrinter") },
     { id: "payment", label: t("settings.tabPayment") },
+    { id: "flow", label: lang === "id" ? "Alur pesanan" : "Order flow" },
   ];
 
   return (
@@ -238,6 +247,70 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="form-actions"><button className="btn btn-primary" type="button" onClick={savePrinter} disabled={saving === "printer"}>{saving === "printer" ? "..." : t("action.save")}</button></div>
+          </div>
+        </section>
+      ) : null}
+
+      {tab === "flow" ? (
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <h3 className="panel-title"><Icon name="bag" /><span>{lang === "id" ? "Alur pesanan pelanggan" : "Customer order flow"}</span></h3>
+              <p className="panel-subtitle">
+                {lang === "id"
+                  ? "Pilih apakah pesanan masuk ke antrean kasir atau diteruskan ke WhatsApp kantin."
+                  : "Choose whether orders enter the cashier queue or are forwarded to the canteen WhatsApp."}
+              </p>
+            </div>
+          </div>
+          <div className="panel-body">
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <strong>{lang === "id" ? "Tujuan pesanan" : "Order destination"}</strong>
+                <p>
+                  {lang === "id"
+                    ? "Mode kasir memakai POS dan antrean yang sudah ada. Mode WhatsApp tidak membuat order di POS."
+                    : "Cashier mode uses the existing POS and queue. WhatsApp mode does not create a POS order."}
+                </p>
+              </div>
+              <div className="segmented">
+                <button type="button" className={orderMode === "cashier" ? "is-active" : ""} onClick={() => setOrderMode("cashier")}>
+                  {lang === "id" ? "Kasir" : "Cashier"}
+                </button>
+                <button type="button" className={orderMode === "whatsapp" ? "is-active" : ""} onClick={() => setOrderMode("whatsapp")}>
+                  WhatsApp
+                </button>
+              </div>
+            </div>
+            <div className="form-grid" style={{ marginTop: 16 }}>
+              <div className="field field-full">
+                <label htmlFor="whatsapp-number">{lang === "id" ? "Nomor WhatsApp kantin" : "Canteen WhatsApp number"}</label>
+                <input
+                  className="input"
+                  id="whatsapp-number"
+                  value={whatsappNumber}
+                  onChange={(event) => setWhatsappNumber(event.target.value)}
+                  placeholder="6285117693117"
+                  inputMode="tel"
+                />
+                <span className="field-hint">
+                  {lang === "id" ? "Gunakan format internasional, contoh 6285117693117." : "Use international format, e.g. 6285117693117."}
+                </span>
+              </div>
+            </div>
+            <div className="settings-note">
+              <Icon name="whatsapp" />
+              <span>
+                {orderMode === "whatsapp"
+                  ? (lang === "id" ? "Pelanggan akan diarahkan ke WhatsApp setelah checkout. QRIS memakai QR dinamis yang dibuat dari aset merchant kantin." : "Customers will be redirected to WhatsApp after checkout. QRIS uses a dynamic QR generated from the merchant asset.")
+                  : (lang === "id" ? "Pesanan dibuat di sistem dan masuk ke antrean kasir seperti biasa." : "Orders are created in the system and enter the cashier queue as usual.")}
+              </span>
+            </div>
+            <div className="form-actions">
+              <button className="btn btn-primary" type="button" onClick={saveFlow} disabled={saving === "flow"}>
+                {saving === "flow" ? "..." : t("action.save")}
+              </button>
+            </div>
           </div>
         </section>
       ) : null}

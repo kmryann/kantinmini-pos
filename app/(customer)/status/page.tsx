@@ -6,7 +6,7 @@ import { Icon } from "@/components/Icon";
 import { useCustomer } from "@/components/CustomerProvider";
 import { useToast } from "@/components/ToastProvider";
 import { api } from "@/lib/api-client";
-import type { Order } from "@/lib/api-types";
+import type { Order, PublicSettings } from "@/lib/api-types";
 import { readActiveOrderRef } from "@/lib/customer-storage";
 import { formatIDR, formatTime } from "@/lib/format";
 import { localized, orderItemSummary } from "@/lib/order-utils";
@@ -22,11 +22,13 @@ export default function StatusPage() {
   const toast = useToast();
   const { setContext } = useCustomer();
   const [order, setOrder] = useState<Order | null>(null);
+  const [site, setSite] = useState<PublicSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [remaining, setRemaining] = useState(0);
 
   useEffect(() => {
     document.title = "Status pesanan · Kantin Mini";
+    api.settings().then(setSite).catch(() => setSite(null));
   }, [lang]);
 
   useEffect(() => {
@@ -90,7 +92,9 @@ export default function StatusPage() {
   const typeLabel = order
     ? order.type === "takeaway"
       ? t("status.takeaway")
-      : `${t("status.table")} ${String(order.table || 1).padStart(2, "0")}`
+      : order.table
+        ? `${t("status.table")} ${String(order.table).padStart(2, "0")}`
+        : t("common.dineIn")
     : "";
   const count = order?.items.reduce((sum, item) => sum + item.qty, 0) ?? 0;
 
@@ -250,6 +254,8 @@ export default function StatusPage() {
           <div className="status-detail-line"><span>{t("status.customer")}</span><strong>{order.customer}</strong></div>
           <div className="status-detail-line"><span>{t("status.table")}</span><strong>{typeLabel}</strong></div>
           <div className="status-detail-line"><span>{t("status.orderedAt")}</span><strong>{formatTime(order.createdAt, lang)}</strong></div>
+          {order.fulfillmentTime ? <div className="status-detail-line"><span>{order.type === "takeaway" ? (lang === "id" ? "Jam ambil" : "Pickup time") : (lang === "id" ? "Jam tiba" : "Arrival time")}</span><strong>{order.fulfillmentTime}</strong></div> : null}
+          {order.note ? <div className="status-detail-line"><span>{t("common.notes")}</span><strong>{order.note}</strong></div> : null}
           <div className="status-detail-line"><span>{t("common.payment")}</span><strong>{order.payment} · {statusText}</strong></div>
           {order.paidAt ? <div className="status-detail-line"><span>{t("status.paidAt")}</span><strong>{formatTime(order.paidAt, lang)}</strong></div> : null}
           <div className="status-detail-line status-detail-total"><span>{t("status.total")}</span><strong>{formatIDR(order.total)}</strong></div>
@@ -259,8 +265,43 @@ export default function StatusPage() {
       <p className="pay-note" style={{ marginTop: 12 }}>{t("status.needHelp")}</p>
 
       <div className="status-actions">
+        <button className="btn btn-outline" type="button" onClick={() => window.print()}>
+          <Icon name="printer" />
+          <span>{t("status.print")}</span>
+        </button>
         <Link className="btn btn-primary" href="/order">{t("status.newOrder")}</Link>
         <Link className="btn btn-outline" href="/">{t("status.home")}</Link>
+      </div>
+
+      <div className="receipt-print print-area" aria-hidden="true">
+        <div className="receipt-paper" data-width="80">
+          <h4>{site?.name || "Kantin Mini"}</h4>
+          <p className="receipt-sub">{site?.address || "Jl. Melati No. 8, Gedung A, Lantai 1"}</p>
+          <p className="receipt-sub">{t("receipt.customer")}</p>
+          <hr />
+          <div className="receipt-line"><span>{t("orders.openCode")}</span><span>{order.code}</span></div>
+          <div className="receipt-line"><span>{t("label.type")}</span><span>{typeLabel}</span></div>
+          <div className="receipt-line"><span>{t("label.customer")}</span><span>{order.customer}</span></div>
+          <div className="receipt-line"><span>{t("label.time")}</span><span>{formatTime(order.createdAt, lang)}</span></div>
+          {order.fulfillmentTime ? <div className="receipt-line"><span>{order.type === "takeaway" ? (lang === "id" ? "Jam ambil" : "Pickup") : (lang === "id" ? "Jam tiba" : "Arrival")}</span><span>{order.fulfillmentTime}</span></div> : null}
+          <hr />
+          {order.items.map((item, index) => (
+            <div className="receipt-line" key={`${item.menuId}-print-${index}`}>
+              <span>
+                {localized(item.name, lang)} × {item.qty}
+                {orderItemSummary(item, lang) ? <><br /><small>{orderItemSummary(item, lang)}</small></> : null}
+                {item.note ? <><br /><small>{item.note}</small></> : null}
+              </span>
+              <span>{formatIDR(item.price * item.qty)}</span>
+            </div>
+          ))}
+          <hr />
+          <div className="receipt-total-line"><span>{t("label.total")}</span><span>{formatIDR(order.total)}</span></div>
+          <div className="receipt-line"><span>{order.payment}</span><span>{statusText}</span></div>
+          {order.note ? <div className="receipt-line"><span>{t("common.notes")}</span><span>{order.note}</span></div> : null}
+          <hr />
+          <p className="receipt-thanks">{t("receipt.thankYou")}</p>
+        </div>
       </div>
     </main>
   );

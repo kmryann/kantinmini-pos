@@ -30,6 +30,8 @@ export async function getPublicSettings(): Promise<PublicSettings> {
     hours: settings.hours,
     description: settings.description,
     logo: settings.logo,
+    orderMode: settings.orderMode,
+    whatsappNumber: settings.whatsappNumber,
     midtransConfigured: Boolean(process.env.MIDTRANS_SERVER_KEY || settings.midtransServerKey),
   };
 }

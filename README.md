@@ -22,11 +22,14 @@ npm start
 ## Backend
 
 - API memakai **Next.js Route Handlers** di `app/api/`.
-- Database memakai **PGlite** — engine PostgreSQL yang berjalan embedded sehingga proyek bisa langsung dijalankan tanpa kredensial cloud. Data disimpan di `.data/pglite` dan otomatis di-seed pada request pertama.
+- Database memakai **PGlite** — engine PostgreSQL yang berjalan embedded sehingga proyek bisa langsung dijalankan tanpa kredensial cloud. Data disimpan di `~/.local/share/kantinmini/pglite` (di luar folder proyek agar watcher Next dev tidak me-reload halaman) dan otomatis di-seed pada request pertama.
 - Skema database ada di `lib/server/db.ts` dan memakai tipe PostgreSQL standar (`jsonb`, `timestamptz`, sequence, constraint).
 - Autentikasi staf memakai session cookie `httpOnly`; password di-hash dengan `scrypt`. Role dibatasi di setiap endpoint API.
 - Foto menu diunggah ke `public/uploads/menus` dan otomatis dikonversi ke **WebP** dengan Sharp.
 - Pembayaran QRIS memakai **Midtrans Core API** jika `MIDTRANS_SERVER_KEY` diisi. Tanpa key, QRIS memakai QR demo dan tombol simulasi pembayaran.
+- Admin dapat mengubah **alur pesanan** di Pengaturan → Alur pesanan:
+  - **Kasir**: order dibuat di database dan masuk antrean POS seperti sebelumnya.
+  - **WhatsApp**: checkout tidak membuat order POS. Pembayaran cash langsung membuka WhatsApp; QRIS menampilkan QR dinamis (nominal pesanan dimasukkan ke payload merchant dari `public/assets/qr/new-qris.jpeg`) tombol **Unduh QR**, dan tombol **Saya sudah bayar**, lalu detail pesanan dikirim ke WhatsApp kantin.
 - Webhook Midtrans tersedia di `POST /api/midtrans/webhook` dengan verifikasi `signature_key`.
 - Update order kasir dan status pelanggan memakai polling otomatis (5 detik untuk antrean kasir, 3 detik untuk status pelanggan).
 
@@ -54,12 +57,12 @@ Semua akun seed memakai kata sandi **`kantin123`**:
 | Manajer | `budi@kantinmini.id` |
 | Admin | `sari@kantinmini.id` |
 
-Tombol **Akses demo** di halaman login juga bisa dipakai untuk masuk cepat sebagai masing-masing role.
+Login memakai email dan kata sandi di atas.
 
 Untuk mengosongkan database dan membuat seed baru:
 
 ```bash
-rm -rf .data
+rm -rf ~/.local/share/kantinmini/pglite
 ```
 
 ## API utama
@@ -92,9 +95,10 @@ rm -rf .data
 | `/` | Landing page: hero background image, about carousel, cara pesan, lokasi, kontak & sosial |
 | `/order?table=3` | Menu, search, kategori, detail, customize; cart drawer bawah |
 | `/cart` | Redirect ke menu dan membuka drawer keranjang |
-| `/checkout` | Checkout: ringkasan item, quantity, nama, QRIS/cash |
+| `/checkout` | Checkout: tipe dine-in/takeaway, jam ambil/tiba, catatan, nama, QRIS/cash |
 | `/payment` | Redirect ke `/checkout` |
-| `/status` | Status pesanan realtime, QR/kode bayar, countdown |
+| `/status` | Status pesanan realtime, QR/kode bayar, countdown, cetak struk pelanggan |
+| `/whatsapp-status` | Ringkasan pesanan WhatsApp terakhir; halaman kembali setelah redirect ke WhatsApp |
 
 ### Staf
 
@@ -125,6 +129,8 @@ rm -rf .data
 ## Catatan
 
 - Cart pelanggan tetap disimpan di browser (`localStorage`) sampai checkout; pesanan, menu, akun, laporan, dan pengaturan tersimpan di database.
+- Pada mode WhatsApp, pesanan tidak disimpan sebagai order POS. Checkout menyimpan ringkasan ke `/whatsapp-status`, lalu mengarahkan ke chat WhatsApp kantin. Saat pengguna kembali, ringkasan pesanan tetap tersedia di halaman tersebut. Nomor WhatsApp dapat diubah dari Pengaturan → Alur pesanan.
+- Tombol back pada modal detail/customize/cart dan modal QRIS akan menutup modal, bukan meninggalkan halaman.
 - QR meja masih berupa aset statis. Nomor meja/takeaway dibaca dari URL.
 - Cetak struk memakai dialog print browser dan mendukung lebar 58/80 mm dari pengaturan.
 - Foto menu demo berasal dari Unsplash dan sudah dikonversi ke WebP; kredit di `public/assets/menu/CREDITS.md`.
