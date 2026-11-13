@@ -2923,3 +2923,14 @@ h3 {
     font-size: 0.8rem;
   }
 }
+
+
+/* Hero primary CTA press feedback */
+.hero-actions .hero-order-cta {
+  will-change: transform;
+}
+
+.hero-actions .hero-order-cta:active {
+  transform: scale(0.975);
+  transition-duration: 90ms;
+}

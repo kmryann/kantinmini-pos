@@ -45,12 +45,14 @@ export function CustomerHeader() {
             <span className="context-pill-divider" aria-hidden="true" />
             <strong>{contextLabel}</strong>
           </span> */}
-          <button className="cart-link" type="button" aria-label={t("common.cart")} onClick={openCart}>
-            <Icon name="cart" />
-            <span className="cart-count" data-empty={cartCount === 0}>
-              {cartCount}
-            </span>
-          </button>
+          {pathname === "/order" ? (
+            <button className="cart-link" type="button" aria-label={t("common.cart")} onClick={openCart}>
+              <Icon name="cart" />
+              <span className="cart-count" data-empty={cartCount === 0}>
+                {cartCount}
+              </span>
+            </button>
+          ) : null}
         </div>
       </div>
     </header>

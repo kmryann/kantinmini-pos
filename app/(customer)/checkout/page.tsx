@@ -152,8 +152,6 @@ export default function CheckoutPage() {
       createdAt: new Date().toISOString(),
       waUrl,
     });
-    clearCart();
-    setQrisOpen(false);
     window.location.assign("/whatsapp-status?send=1");
   };
 
@@ -392,6 +390,7 @@ export default function CheckoutPage() {
             </div>
             <div className="modal-body">
               <div className="checkout-qris-box">
+                <p className="checkout-qris-merchant">{settings?.name || "Kantin Mini"}</p>
                 <img
                   src={`/api/qris?amount=${cartTotal}`}
                   alt="QRIS Kantin Mini"
@@ -409,7 +408,6 @@ export default function CheckoutPage() {
               </div>
             </div>
             <div className="modal-foot">
-              <button className="btn btn-outline" type="button" onClick={() => setQrisOpen(false)}>{t("common.back")}</button>
               <a
                 className="btn btn-outline"
                 href={`/api/qris?amount=${cartTotal}&download=1`}

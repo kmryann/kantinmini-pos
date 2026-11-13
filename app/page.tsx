@@ -232,7 +232,7 @@ export default function LandingPage() {
               </h1>
               <p className="hero-lead">{t("heroLead")}</p>
               <div className="hero-actions">
-                <Link className="btn btn-primary" href="/order?table=3">
+                <Link className="btn btn-primary hero-order-cta" href="/order?table=3" prefetch>
                   <Icon name="utensils" />
                   <span>{t("ctaHow")}</span>
                 </Link>
