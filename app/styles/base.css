@@ -2035,22 +2035,33 @@ h3 {
 .about-dots {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   margin-top: 20px;
 }
 
 .about-dots button {
-  width: 8px;
-  height: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.about-dots button::after {
+  content: "";
+  display: block;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
   background: #c9d6cf;
-  cursor: pointer;
   transition: width 180ms ease, background-color 180ms ease;
 }
 
-.about-dots button.is-active {
+.about-dots button.is-active::after {
   width: 25px;
   background: var(--green-deep);
 }
@@ -2211,7 +2222,7 @@ h3 {
 }
 
 .contact-copy .section-label {
-  color: var(--mango);
+  color: #ffe082;
 }
 
 .contact-copy h2 {
@@ -2227,7 +2238,7 @@ h3 {
 .contact-copy > p:not(.section-label) {
   max-width: 42ch;
   margin: 0 0 22px;
-  color: rgba(255, 253, 247, 0.72);
+  color: rgba(255, 253, 247, 0.92);
   font-size: 0.96rem;
   line-height: 1.65;
 }
@@ -2292,20 +2303,20 @@ h3 {
 .contact-card small {
   display: block;
   margin-top: 2px;
-  color: rgba(255, 253, 247, 0.62);
+  color: rgba(255, 253, 247, 0.85);
   font-size: 0.7rem;
 }
 
 .contact-card > .icon {
   width: 16px;
   height: 16px;
-  color: rgba(255, 253, 247, 0.6);
+  color: rgba(255, 253, 247, 0.85);
 }
 
 .social-block strong {
   display: block;
   margin-bottom: 8px;
-  color: rgba(255, 253, 247, 0.62);
+  color: rgba(255, 253, 247, 0.92);
   font-size: 0.7rem;
   font-weight: 600;
 }

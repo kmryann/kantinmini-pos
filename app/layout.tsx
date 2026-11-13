@@ -17,6 +17,27 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" data-scroll-behavior="smooth">
+      <head>
+        <link
+          rel="preload"
+          href="/assets/fonts/bricolage-grotesque-latin.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href="/assets/hero/hero-kantin-sm.webp"
+          media="(max-width: 640px)"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href="/assets/hero/hero-kantin-lg.webp"
+          media="(min-width: 641px)"
+        />
+      </head>
       <body className="min-h-screen font-body text-ink antialiased">
         <div dangerouslySetInnerHTML={{ __html: iconSprite }} />
         <Providers>{children}</Providers>

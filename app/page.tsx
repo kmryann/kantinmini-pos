@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { api } from "@/lib/api-client";
@@ -15,6 +15,23 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [pastHero, setPastHero] = useState(false);
   const [site, setSite] = useState<PublicSettings | null>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [loadMap, setLoadMap] = useState(false);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setLoadMap(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(mapRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const extra =
     lang === "id"
@@ -269,7 +286,14 @@ export default function LandingPage() {
             </div>
             <div className="about-carousel">
               <div className="about-image">
-                <img src={extra.slides[slide].image} alt={extra.slides[slide].title} />
+                <img
+                  src={extra.slides[slide].image}
+                  alt={extra.slides[slide].title}
+                  width={800}
+                  height={600}
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
               <div className="about-arrows">
                 <button
@@ -374,14 +398,16 @@ export default function LandingPage() {
                 <span>{extra.openMap}</span>
               </a>
             </div>
-            <div className="landing-map">
-              <iframe
-                src={mapEmbed}
-                title="Kantin Mini location"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                allowFullScreen
-              />
+            <div className="landing-map" ref={mapRef}>
+              {loadMap ? (
+                <iframe
+                  src={mapEmbed}
+                  title="Kantin Mini location"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen
+                />
+              ) : null}
             </div>
           </div>
         </section>
