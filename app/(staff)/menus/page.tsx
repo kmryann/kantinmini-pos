@@ -38,6 +38,7 @@ export default function MenusPage() {
   const [categoryId, setCategoryId] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState("/assets/menu/placeholder.webp");
+  const [popular, setPopular] = useState(false);
   const [optionRows, setOptionRows] = useState<OptionRow[]>([]);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -88,6 +89,7 @@ export default function MenusPage() {
     setCategoryId(menu ? menu.category : activeCategory !== "all" ? activeCategory : categories[0]?.id || "");
     setPhoto(null);
     setPhotoPreview(menu ? menu.image : "/assets/menu/placeholder.webp");
+    setPopular(menu ? Boolean(menu.popular) : false);
     setOptionRows(
       menu
         ? menu.options.map((group: any) => ({
@@ -135,7 +137,7 @@ export default function MenusPage() {
       price: Number(price),
       image: photo || (existing ? existing.image : "/assets/menu/placeholder.webp"),
       available: existing ? existing.available : true,
-      popular: existing ? existing.popular : false,
+      popular,
       options: optionGroups,
     };
     setBusy(true);
@@ -285,7 +287,14 @@ export default function MenusPage() {
                   <div className="menu-admin-info">
                     <h3>{menuName(menu)}</h3>
                     <p>{category ? categoryName(category) : ""} · {menu.options.length ? `${t("label.options")}: ${menu.options.length}` : t("menus.noOptions")}</p>
-                    <span className={`badge ${menu.available ? "badge-paid" : "badge-expired"}`} style={{ marginTop: 5 }}>{menu.available ? t("label.available") : t("label.soldOut")}</span>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 5 }}>
+                      <span className={`badge ${menu.available ? "badge-paid" : "badge-expired"}`}>{menu.available ? t("label.available") : t("label.soldOut")}</span>
+                      {menu.popular ? (
+                        <span className="badge badge-pending" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <Icon name="flame" /> {t("order.favorite")}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   <span className="menu-admin-price">{formatIDR(menu.price)}</span>
                   <label className="switch" title={t("label.available")}>
@@ -352,6 +361,20 @@ export default function MenusPage() {
                     <select className="select" id="menu-category" value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
                       {categories.map((category) => <option value={category.id} key={category.id}>{categoryName(category)}</option>)}
                     </select>
+                  </div>
+                  <div className="field field-full" style={{ padding: "4px 0" }}>
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: 10, cursor: "pointer", fontWeight: 600 }}>
+                      <input
+                        type="checkbox"
+                        checked={popular}
+                        onChange={(event) => setPopular(event.target.checked)}
+                        style={{ width: 18, height: 18, accentColor: "var(--green-deep)" }}
+                      />
+                      <span>
+                        <Icon name="flame" style={{ verticalAlign: "middle", marginRight: 4, color: "var(--mango)" }} />
+                        {lang === "id" ? "Tandai sebagai Best Seller (Menu Populer)" : "Mark as Best Seller (Popular Menu)"}
+                      </span>
+                    </label>
                   </div>
                   <div className="field field-full">
                     <span className="field-label">{t("menus.photo")}</span>

@@ -305,9 +305,52 @@
 
 .menu-list {
   --menu-gutter: max(32px, calc((100% - 920px) / 2 + 16px));
-  display: grid;
-  gap: 11px;
-  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-top: 4px;
+}
+
+.menu-category-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-category-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 18px;
+  padding-bottom: 9px;
+  padding-inline: var(--menu-gutter, 16px);
+}
+
+.menu-category-section:first-child .menu-category-header {
+  padding-top: 6px;
+}
+
+.menu-category-title {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.menu-category-count {
+  color: var(--ink-soft);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.menu-category-items {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
 }
 
 .menu-item {
@@ -315,19 +358,23 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 118px;
   gap: 14px;
-  padding-block: 13px;
+  padding-block: 14px;
   padding-inline: var(--menu-gutter, 16px);
-  border: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-top: 0;
   border-left: 0;
   border-right: 0;
   border-radius: 0;
   background: var(--white);
-  transition: border-color 140ms ease, transform 140ms ease;
+  transition: background-color 140ms ease;
 }
 
 .menu-item:hover {
-  border-color: #bdd6ca;
-  transform: translateY(-1px);
+  background: #fbfdfc;
+}
+
+.menu-item:active {
+  background: #f3f7f4;
 }
 
 .menu-item.is-soldout {
@@ -2342,6 +2389,17 @@ body.modal-open {
 
   .menu-list {
     --menu-gutter: 12px;
+    gap: 18px;
+  }
+
+  .menu-category-header {
+    padding-top: 14px;
+    padding-bottom: 7px;
+  }
+
+  .menu-category-title {
+    font-size: 0.98rem;
+    font-weight: 650;
   }
 
   .menu-item {
@@ -3028,9 +3086,10 @@ body.cart-open {
 }
 
 .order-skeleton-list {
-  display: grid;
-  gap: 11px;
+  display: flex;
+  flex-direction: column;
   padding-top: 14px;
+  border-top: 1px solid var(--line);
 }
 
 .order-skeleton-card {
@@ -3038,9 +3097,9 @@ body.cart-open {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 22px max(32px, calc((100% - 920px) / 2 + 16px));
+  padding: 16px max(32px, calc((100% - 920px) / 2 + 16px));
   background: var(--white);
-  border-block: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .order-skeleton-copy {

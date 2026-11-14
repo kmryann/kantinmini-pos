@@ -468,7 +468,7 @@ export default function LandingPage() {
         <div className="shell footer-bottom">
           <p>© 2026 Kantin Mini.</p>
           <p>{t("footerNote")}</p>
-          <LanguageSwitch dark />
+          {/* <LanguageSwitch dark /> */}
         </div>
       </footer>
 

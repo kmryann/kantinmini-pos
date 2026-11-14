@@ -60,6 +60,39 @@ export function OrderClient({ initialMenu }: { initialMenu: MenuPayload }) {
     });
   }, [activeCategory, search, lang, menu]);
 
+  const groupedCategories = useMemo(() => {
+    const targetCategories =
+      activeCategory === "all"
+        ? menuCategories
+        : menuCategories.filter((c) => c.id === activeCategory);
+
+    const groups: {
+      category: { id: string; name: { id: string; en: string }; icon?: string };
+      items: MenuItem[];
+    }[] = [];
+
+    for (const cat of targetCategories) {
+      const items = filtered.filter((item) => item.category === cat.id);
+      if (items.length > 0) {
+        groups.push({ category: cat, items });
+      }
+    }
+
+    const knownCategoryIds = new Set(menuCategories.map((c) => c.id));
+    const uncategorized = filtered.filter((item) => !knownCategoryIds.has(item.category));
+    if (uncategorized.length > 0 && (activeCategory === "all" || !targetCategories.length)) {
+      groups.push({
+        category: {
+          id: "other",
+          name: { id: "Lainnya", en: "Others" },
+        },
+        items: uncategorized,
+      });
+    }
+
+    return groups;
+  }, [activeCategory, menuCategories, filtered]);
+
   const qtyFor = (menuId: string) =>
     cart.filter((line) => line.menuId === menuId).reduce((sum, line) => sum + line.qty, 0);
 
@@ -235,60 +268,79 @@ export function OrderClient({ initialMenu }: { initialMenu: MenuPayload }) {
               <p>{t("order.emptyDesc")}</p>
             </div>
           ) : (
-            filtered.map((item) => {
-              const name = menuName(item);
+            groupedCategories.map((group) => {
+              const categoryTitle = localized(group.category.name, lang);
               return (
-                <article
-                  className={`menu-item ${item.available ? "" : "is-soldout"}`}
-                  key={item.id}
+                <section
+                  className="menu-category-section"
+                  key={group.category.id}
+                  id={`cat-${group.category.id}`}
+                  aria-labelledby={`cat-title-${group.category.id}`}
                 >
-                  <button className="menu-info" type="button" onClick={() => openDetail(item)}>
-                    {item.popular ? (
-                      <span className="menu-tag">
-                        <Icon name="flame" />
-                        {t("order.favorite")}
-                      </span>
-                    ) : null}
-                    <span className="menu-title">{name}</span>
-                    <span className="menu-desc">{menuDesc(item)}</span>
-                    <span className="menu-price">
-                      <strong>{formatIDR(item.price)}</strong>
-                    </span>
-                  </button>
-                  <div className="menu-media">
-                    <button
-                      className="menu-image-button"
-                      type="button"
-                      aria-label={name}
-                      onClick={() => openDetail(item)}
-                    >
-                      <img src={item.image} alt={name} width={800} height={800} decoding="async" />
-                    </button>
-                    {!item.available ? <span className="soldout-label">{t("order.soldOut")}</span> : null}
-                    {qtyFor(item.id) > 0 ? (
-                      <div className="menu-qty">
-                        <button type="button" aria-label={t("common.qty")} onClick={() => decrementMenu(item)}>
-                          <Icon name="minus" />
-                        </button>
-                        <span>{qtyFor(item.id)}</span>
-                        <button type="button" aria-label={t("order.add")} onClick={() => incrementMenu(item)}>
-                          <Icon name="plus" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        className="menu-add"
-                        type="button"
-                        disabled={!item.available}
-                        aria-label={`${t("order.add")} ${name}`}
-                        onClick={() => addFromList(item)}
-                      >
-                        <Icon name="plus" />
-                        <span>{t("order.add")}</span>
-                      </button>
-                    )}
+                  <div className="menu-category-header">
+                    <h2 id={`cat-title-${group.category.id}`} className="menu-category-title">
+                      {categoryTitle}
+                    </h2>
                   </div>
-                </article>
+                  <div className="menu-category-items">
+                    {group.items.map((item) => {
+                      const name = menuName(item);
+                      return (
+                        <article
+                          className={`menu-item ${item.available ? "" : "is-soldout"}`}
+                          key={item.id}
+                        >
+                          <button className="menu-info" type="button" onClick={() => openDetail(item)}>
+                            {item.popular ? (
+                              <span className="menu-tag">
+                                <Icon name="flame" />
+                                {t("order.favorite")}
+                              </span>
+                            ) : null}
+                            <span className="menu-title">{name}</span>
+                            <span className="menu-desc">{menuDesc(item)}</span>
+                            <span className="menu-price">
+                              <strong>{formatIDR(item.price)}</strong>
+                            </span>
+                          </button>
+                          <div className="menu-media">
+                            <button
+                              className="menu-image-button"
+                              type="button"
+                              aria-label={name}
+                              onClick={() => openDetail(item)}
+                            >
+                              <img src={item.image} alt={name} width={800} height={800} decoding="async" />
+                            </button>
+                            {!item.available ? <span className="soldout-label">{t("order.soldOut")}</span> : null}
+                            {qtyFor(item.id) > 0 ? (
+                              <div className="menu-qty">
+                                <button type="button" aria-label={t("common.qty")} onClick={() => decrementMenu(item)}>
+                                  <Icon name="minus" />
+                                </button>
+                                <span>{qtyFor(item.id)}</span>
+                                <button type="button" aria-label={t("order.add")} onClick={() => incrementMenu(item)}>
+                                  <Icon name="plus" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                className="menu-add"
+                                type="button"
+                                disabled={!item.available}
+                                aria-label={`${t("order.add")} ${name}`}
+                                onClick={() => addFromList(item)}
+                              >
+                                <Icon name="plus" />
+                                <span>{t("order.add")}</span>
+                              </button>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
               );
             })
           )}

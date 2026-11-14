@@ -47,7 +47,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 16000,
       image: "/assets/foto-menu/katsu-bbq.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [katsuSauceGroup],
     },
     {
@@ -89,7 +89,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 16000,
       image: "/assets/foto-menu/katsu-matah.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {
@@ -103,7 +103,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 19000,
       image: "/assets/foto-menu/ayam-geprek.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {
@@ -159,7 +159,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 19000,
       image: "/assets/foto-menu/ayam-kremes.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {
@@ -229,7 +229,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 19000,
       image: "/assets/foto-menu/sapi-ladahitam.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {
@@ -257,7 +257,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 17000,
       image: "/assets/foto-menu/nasi-goreng.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {
@@ -301,7 +301,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 17000,
       image: "/assets/foto-menu/kentang-katsu.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [katsuSauceGroup],
     },
     {
@@ -331,7 +331,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 15000,
       image: "/assets/foto-menu/carbonara.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {
@@ -345,7 +345,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 16000,
       image: "/assets/foto-menu/mie-tektek.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {
@@ -389,7 +389,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 15000,
       image: "/assets/foto-menu/selam-besar.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {
@@ -417,7 +417,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 15000,
       image: "/assets/foto-menu/pempek-kecil.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {
@@ -475,7 +475,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 8500,
       image: "/assets/foto-menu/ayamkapten-besar.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {
@@ -503,7 +503,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 5000,
       image: "/assets/foto-menu/kulit.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
 
@@ -519,7 +519,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 6000,
       image: "/assets/foto-menu/milo.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {
@@ -547,7 +547,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 4000,
       image: "/assets/foto-menu/lemon-tea.webp",
       available: true,
-      popular: true,
+      popular: false,
       options: [],
     },
     {

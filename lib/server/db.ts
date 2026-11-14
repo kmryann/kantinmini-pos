@@ -204,7 +204,16 @@ const insertOrder = async (db: any, order: {
 
 async function seed(db: PGlite) {
   const existing = await db.query<{ count: string }>("select count(*)::text as count from categories");
-  if (Number(existing.rows[0]?.count || 0) > 0) return;
+  if (Number(existing.rows[0]?.count || 0) > 0) {
+    // Sinkronkan status popular dari lib/data.ts ke menu yang sudah ada
+    const menu = KANTIN_DATA.menu || [];
+    for (const item of menu) {
+      if (item.popular !== undefined) {
+        await db.query("update menus set popular = $1 where id = $2", [Boolean(item.popular), item.id]);
+      }
+    }
+    return;
+  }
 
   await db.transaction(async (tx) => {
     const categories = KANTIN_DATA.categories || [];
