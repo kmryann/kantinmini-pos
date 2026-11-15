@@ -213,7 +213,11 @@ async function seed(db: PGlite) {
             set popular = $1,
                 available = $2,
                 options = $3,
-                price = $4
+                price = $4,
+                name_id = $6,
+                name_en = $7,
+                desc_id = $8,
+                desc_en = $9
           where id = $5`,
         [
           Boolean(item.popular),
@@ -221,6 +225,10 @@ async function seed(db: PGlite) {
           JSON.stringify(item.options || []),
           item.price,
           item.id,
+          item.name.id,
+          item.name.en,
+          item.desc?.id || "",
+          item.desc?.en || "",
         ],
       );
     }

@@ -46,6 +46,66 @@ const now = new Date("2026-11-02T12:00:00+07:00");
     choices: spicyLevelChoices,
   };
 
+  const ayamBesarChoices = [
+    { id: "dada", label: { id: "Dada", en: "Breast" } },
+    { id: "paha-atas", label: { id: "Paha Atas", en: "Thigh" } },
+  ];
+  const ayamBesarGroup = {
+    id: "potongan-ayam",
+    label: { id: "Pilihan Bagian Ayam", en: "Chicken Cut" },
+    required: true,
+    choices: ayamBesarChoices,
+  };
+
+  const ayamKecilChoices = [
+    { id: "sayap", label: { id: "Sayap", en: "Wing" } },
+    { id: "paha-bawah", label: { id: "Paha Bawah", en: "Drumstick" } },
+  ];
+  const ayamKecilGroup = {
+    id: "potongan-ayam",
+    label: { id: "Pilihan Bagian Ayam", en: "Chicken Cut" },
+    required: true,
+    choices: ayamKecilChoices,
+  };
+
+  const nutrisariChoices = [
+    { id: "jeruk-peras", label: { id: "Jeruk Peras", en: "Squeezed Orange" } },
+    { id: "mangga", label: { id: "Mangga", en: "Mango" } },
+    { id: "leci", label: { id: "Leci", en: "Lychee" } },
+    { id: "jambu", label: { id: "Jambu", en: "Guava" } },
+  ];
+  const nutrisariGroup = {
+    id: "pilihan-rasa",
+    label: { id: "Pilihan Rasa", en: "Flavor Choice" },
+    required: true,
+    choices: nutrisariChoices,
+  };
+
+  const kopiChoices = [
+    { id: "creamy-latte", label: { id: "Creamy Latte", en: "Creamy Latte" } },
+    { id: "goodday-freeze", label: { id: "Good Day Freeze", en: "Good Day Freeze" } },
+    { id: "indocafe-coffeemix", label: { id: "Indocafe Coffeemix", en: "Indocafe Coffeemix" } },
+    { id: "goodday-mocachino", label: { id: "Good Day Mocachino", en: "Good Day Mocachino" } },
+    { id: "torabika-cappuccino", label: { id: "Torabika Cappuccino", en: "Torabika Cappuccino" } },
+  ];
+  const kopiGroup = {
+    id: "varian-kopi",
+    label: { id: "Varian Kopi", en: "Coffee Variant" },
+    required: true,
+    choices: kopiChoices,
+  };
+
+  const suhuChoices = [
+    { id: "dingin", label: { id: "Dingin (Es)", en: "Iced" } },
+    { id: "panas", label: { id: "Panas", en: "Hot" } },
+  ];
+  const suhuGroup = {
+    id: "penyajian",
+    label: { id: "Pilihan Penyajian", en: "Serving" },
+    required: true,
+    choices: suhuChoices,
+  };
+
   const menu = [
     // --- Paket Nasi ---
     {
@@ -488,7 +548,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       image: "/assets/foto-menu/ayamkapten-besar.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [ayamBesarGroup],
     },
     {
       id: "ayam-kecil",
@@ -502,7 +562,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       image: "/assets/foto-menu/ayamkapten-kecil.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [ayamKecilGroup],
     },
     {
       id: "kulit-ayam",
@@ -532,7 +592,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       image: "/assets/foto-menu/milo.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [suhuGroup],
     },
     {
       id: "teh-tarik",
@@ -546,49 +606,49 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       image: "/assets/foto-menu/teh-tarik.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [suhuGroup],
     },
     {
       id: "lemon-tea",
       category: "minuman",
       name: { id: "Lemon Tea", en: "Lemon Tea" },
       desc: {
-        id: "Teh manis lemon segar dingin",
-        en: "Fresh sweet iced lemon tea",
+        id: "Teh manis lemon segar",
+        en: "Fresh sweet lemon tea",
       },
       price: 4000,
       image: "/assets/foto-menu/lemon-tea.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [suhuGroup],
     },
     {
       id: "nutrisari",
       category: "minuman",
       name: { id: "Nutrisari", en: "Nutrisari" },
       desc: {
-        id: "Aneka rasa Nutrisari segar dingin",
+        id: "Aneka rasa Nutrisari segar",
         en: "Refreshing chilled citrus fruit drink",
       },
       price: 4000,
       image: "/assets/foto-menu/nutrisari.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [nutrisariGroup],
     },
     {
       id: "kopi",
       category: "minuman",
-      name: { id: "Kopi", en: "Black Coffee" },
+      name: { id: "Kopi", en: "Coffee" },
       desc: {
-        id: "Kopi hitam manis panas atau dingin",
-        en: "Traditional black coffee, hot or iced",
+        id: "Pilihan kopi sachet favorit",
+        en: "Favorite sachet coffee choices",
       },
       price: 5000,
       image: "/assets/foto-menu/kopi.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [kopiGroup],
     },
   ];
 
