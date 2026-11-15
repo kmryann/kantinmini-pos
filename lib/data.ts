@@ -34,6 +34,18 @@ const now = new Date("2026-11-02T12:00:00+07:00");
     choices: sosisSauceChoices,
   };
 
+  const spicyLevelChoices = [
+    { id: "tidak-pedas", label: { id: "Tidak Pedas", en: "Not Spicy" } },
+    { id: "sedang", label: { id: "Sedang", en: "Medium" } },
+    { id: "pedas", label: { id: "Pedas", en: "Spicy" } },
+  ];
+  const spicyLevelGroup = {
+    id: "tingkat-pedas",
+    label: { id: "Tingkat Pedas", en: "Spiciness Level" },
+    required: true,
+    choices: spicyLevelChoices,
+  };
+
   const menu = [
     // --- Paket Nasi ---
     {
@@ -47,7 +59,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 16000,
       image: "/assets/foto-menu/katsu-bbq.webp",
       available: true,
-      popular: false,
+      popular: true,
       options: [katsuSauceGroup],
     },
     {
@@ -61,7 +73,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 16000,
       image: "/assets/foto-menu/katsu-ladagaram.webp",
       available: true,
-      popular: false,
+      popular: true,
       options: [],
     },
     {
@@ -173,7 +185,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       price: 16000,
       image: "/assets/foto-menu/ayam-daunjeruk.webp",
       available: true,
-      popular: false,
+      popular: true,
       options: [],
     },
     {
@@ -258,7 +270,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       image: "/assets/foto-menu/nasi-goreng.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [spicyLevelGroup],
     },
     {
       id: "nasi-goreng-putih",
@@ -272,7 +284,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       image: "/assets/foto-menu/nasi-goreng-putih.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [spicyLevelGroup],
     },
     {
       id: "nasi-goreng-cikur",
@@ -286,7 +298,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       image: "/assets/foto-menu/nasi-cikur.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [spicyLevelGroup],
     },
 
     // --- Light Bites ---
@@ -330,7 +342,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       },
       price: 15000,
       image: "/assets/foto-menu/carbonara.webp",
-      available: true,
+      available: false,
       popular: false,
       options: [],
     },
@@ -346,7 +358,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       image: "/assets/foto-menu/mie-tektek.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [spicyLevelGroup],
     },
     {
       id: "kwetiau-goreng",
@@ -360,7 +372,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       image: "/assets/foto-menu/kwetiau-goreng.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [spicyLevelGroup],
     },
     {
       id: "kwetiau-kuah",
@@ -374,7 +386,7 @@ const now = new Date("2026-11-02T12:00:00+07:00");
       image: "/assets/foto-menu/kwetiau-kuah.webp",
       available: true,
       popular: false,
-      options: [],
+      options: [spicyLevelGroup],
     },
 
     // --- Pempek ---
