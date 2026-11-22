@@ -23,6 +23,7 @@ export default function robots(): MetadataRoute.Robots {
           "/payment",
           "/status",
           "/whatsapp-status",
+          "/review",
         ],
       },
     ],

@@ -116,6 +116,28 @@ export default function WhatsAppStatusPage() {
         <Link className="btn btn-primary" href="/order">{t("status.newOrder")}</Link>
       </div>
 
+      <section className="wa-review-card" aria-label={lang === "id" ? "Ulasan Google" : "Google Review"}>
+        <div className="wa-review-stars" aria-hidden="true">
+          <Icon name="star" />
+          <Icon name="star" />
+          <Icon name="star" />
+          <Icon name="star" />
+          <Icon name="star" />
+        </div>
+        <div className="wa-review-copy">
+          <h3>{lang === "id" ? "Suka dengan makanan kami?" : "Enjoying your meal?"}</h3>
+          <p>
+            {lang === "id"
+              ? "Bantu Kantin Mini makin dikenal dengan memberi ulasan singkat di Google."
+              : "Help Kantin Mini grow by leaving a quick review on Google."}
+          </p>
+        </div>
+        <a className="btn btn-outline btn-sm" href="/review" target="_blank" rel="noreferrer">
+          <Icon name="star" />
+          <span>{lang === "id" ? "Beri Ulasan di Google" : "Review on Google"}</span>
+        </a>
+      </section>
+
       <div className="receipt-print print-area" aria-hidden="true">
         <div className="receipt-paper" data-width="80">
           <h4>{site?.name || "Kantin Mini"}</h4>

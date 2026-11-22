@@ -116,6 +116,7 @@ export default function LandingPage() {
           hours: "Senin–Jumat, 08.00–19.00",
           whatsappLabel: "WhatsApp",
           openMap: "Buka di Google Maps",
+          leaveReview: "Beri Ulasan di Google",
           contactLabel: "Kontak",
           contactTitle: "Ada pertanyaan? Chat kami.",
           contactLead:
@@ -173,6 +174,7 @@ export default function LandingPage() {
           hours: "Mon–Fri, 08.00–19.00",
           whatsappLabel: "WhatsApp",
           openMap: "Open in Google Maps",
+          leaveReview: "Review on Google",
           contactLabel: "Contact",
           contactTitle: "Questions? Chat with us.",
           contactLead:
@@ -493,10 +495,16 @@ export default function LandingPage() {
                   <div><strong>{extra.whatsappLabel}</strong><a href={whatsappLink} target="_blank" rel="noreferrer">{whatsappDisplay}</a></div>
                 </li>
               </ul>
-              <a className="btn btn-outline btn-sm" href={mapLink} target="_blank" rel="noreferrer">
-                <Icon name="pin" />
-                <span>{extra.openMap}</span>
-              </a>
+              <div className="landing-location-actions">
+                <a className="btn btn-outline btn-sm" href={mapLink} target="_blank" rel="noreferrer">
+                  <Icon name="pin" />
+                  <span>{extra.openMap}</span>
+                </a>
+                <a className="btn btn-outline btn-sm" href="/review" target="_blank" rel="noreferrer">
+                  <Icon name="star" />
+                  <span>{extra.leaveReview}</span>
+                </a>
+              </div>
             </div>
             <div className="landing-map" ref={mapRef}>
               {loadMap ? (

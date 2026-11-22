@@ -2248,6 +2248,12 @@ b {
   color: var(--ink);
 }
 
+.landing-location-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .landing-map {
   min-height: 420px;
   overflow: hidden;
