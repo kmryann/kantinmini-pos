@@ -2784,7 +2784,7 @@ body.modal-open {
   font-family: var(--display);
   font-size: clamp(2.5rem, 4.5vw, 4.8rem);
   font-weight: 750;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.025em;
   line-height: 0.94;
 }
 
@@ -2835,7 +2835,7 @@ body.modal-open {
   font-family: var(--display);
   font-size: clamp(2rem, 3.5vw, 2.8rem);
   font-weight: 750;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.025em;
   line-height: 0.98;
 }
 
@@ -4259,4 +4259,28 @@ button.side-link {
   height: 32px;
   fill: currentColor;
   stroke: none;
+}
+
+.pos-preview-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 11px 14px;
+  border: 1px solid #f0d799;
+  border-radius: 12px;
+  background: #fdf6e3;
+  color: #6b4b08;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.pos-preview-banner .icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+.pos-preview-banner strong {
+  font-weight: 700;
 }

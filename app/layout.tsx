@@ -6,9 +6,9 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
-  title: "Kantin Mini — Makan enak, tanpa antre",
+  title: "Kantin Mini",
   description:
-    "Pesan dari meja lewat QR, bayar QRIS atau cash, dan pantau pesanan sampai siap. Kantin Mini, kantin lingkungan dengan rasa rumahan.",
+    "Kantin Mini, Cita Rasa Terbaik.",
   icons: {
     icon: "/assets/favicon.svg",
   },
@@ -20,22 +20,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link
           rel="preload"
-          href="/assets/fonts/bricolage-grotesque-latin.woff2"
+          href="/assets/fonts/rubik-latin.woff2"
           as="font"
           type="font/woff2"
           crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          as="image"
-          href="/assets/hero/hero-kantin-sm.webp"
-          media="(max-width: 640px)"
-        />
-        <link
-          rel="preload"
-          as="image"
-          href="/assets/hero/hero-kantin-lg.webp"
-          media="(min-width: 641px)"
         />
       </head>
       <body className="min-h-screen font-body text-ink antialiased">

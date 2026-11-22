@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "@/app/styles/staff.css";
 
 export const metadata: Metadata = {
   title: "Masuk staf · Kantin Mini",

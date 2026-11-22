@@ -11,6 +11,7 @@ import { useLanguage } from "@/lib/i18n";
 export default function LandingPage() {
   const { t, lang } = useLanguage();
   const [slide, setSlide] = useState(0);
+  const [carouselPaused, setCarouselPaused] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pastHero, setPastHero] = useState(false);
@@ -48,19 +49,24 @@ export default function LandingPage() {
           aboutTitle: "Resep Rumahan, Rasa Juara.",
           aboutLead:
             "Berawal dari resep keluarga yang dicintai, Kantin Mini hadir di Bandung untuk menyajikan masakan harian dengan cita rasa Nusantara yang jujur dan apa adanya. Di sini, kami percaya makanan enak tidak harus mahal, yang penting bersih, porsinya pas, dan disajikan dengan senyuman hangat.",
-          slides: [
+          aboutPhotos: [
+            { image: "/assets/about/about-1.webp", alt: "Suasana ruang makan Kantin Mini" },
+            { image: "/assets/about/about-2.webp", alt: "Area penyajian Kantin Mini" },
+            { image: "/assets/about/about-3.webp", alt: "Suasana hangat Kantin Mini" },
+          ],
+          highlights: [
             {
-              image: "/assets/about/about-1.webp",
+              icon: "utensils" as const,
               title: "Banyak Pilihan Menu",
               body: "Mulai dari Katsu, Pempek Palembang asli, mie/pasta, sampai aneka minuman segar biar tidak bosan makan itu-itu saja.",
             },
             {
-              image: "/assets/about/about-2.webp",
+              icon: "wallet" as const,
               title: "Ramah di Kantong",
               body: "Sajian berkualitas porsi kenyang dengan harga mahasiswa dan anak kos. Makan enak tidak perlu menunggu tanggal muda!",
             },
             {
-              image: "/assets/about/about-3.webp",
+              icon: "chef-hat" as const,
               title: "Dibuat saat dipesan",
               body: "Pesananmu diolah dan disajikan dengan cepat agar tidak perlu menunggu lama saat lapar melanda.",
             },
@@ -100,19 +106,24 @@ export default function LandingPage() {
           aboutTitle: "Home-Style Recipes, Champion Flavor.",
           aboutLead:
             "Rooted in beloved family recipes, Kantin Mini is here in Bandung to serve daily comfort meals with honest, authentic Indonesian flavors. We believe good food doesn't have to be expensive—what matters is that it's clean, generously portioned, and served with a warm smile.",
-          slides: [
+          aboutPhotos: [
+            { image: "/assets/about/about-1.webp", alt: "Kantin Mini dining area" },
+            { image: "/assets/about/about-2.webp", alt: "Kantin Mini serving counter" },
+            { image: "/assets/about/about-3.webp", alt: "Warm atmosphere at Kantin Mini" },
+          ],
+          highlights: [
             {
-              image: "/assets/about/about-1.webp",
+              icon: "utensils" as const,
               title: "Wide Menu Selection",
               body: "From Katsu, authentic Palembang Pempek, noodles & pasta, to refreshing drinks so you'll never get bored.",
             },
             {
-              image: "/assets/about/about-2.webp",
+              icon: "wallet" as const,
               title: "Pocket-Friendly",
               body: "Quality, satisfying meals at student and boarding-friendly prices. Delicious food doesn't have to wait until payday!",
             },
             {
-              image: "/assets/about/about-3.webp",
+              icon: "chef-hat" as const,
               title: "Made Fresh to Order",
               body: "Your food is prepared and served quickly so you don't have to wait long when hunger strikes.",
             },
@@ -140,6 +151,7 @@ export default function LandingPage() {
           footerContact: "Contact",
         };
 
+  const isWhatsappMode = site?.orderMode !== "cashier";
   const whatsappNumber = (site?.whatsappNumber || "6285117693117").replace(/\D/g, "").replace(/^0/, "62");
   const whatsappLocal = whatsappNumber.startsWith("62") ? `0${whatsappNumber.slice(2)}` : whatsappNumber;
   const whatsappDisplay = whatsappLocal.replace(/(\d{4})(\d{4})(\d+)/, "$1-$2-$3");
@@ -182,8 +194,29 @@ export default function LandingPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  const photoCount = extra.aboutPhotos.length;
+  useEffect(() => {
+    if (carouselPaused) return;
+    const timer = window.setTimeout(() => {
+      setSlide((current) => (current + 1) % photoCount);
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [slide, carouselPaused, photoCount]);
+
   return (
     <>
+      <link
+        rel="preload"
+        as="image"
+        href="/assets/hero/hero-kantin-sm.webp"
+        media="(max-width: 640px)"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href="/assets/hero/hero-kantin-lg.webp"
+        media="(min-width: 641px)"
+      />
       <a className="skip-link" href="#main">
         {t("skipLink")}
       </a>
@@ -227,7 +260,7 @@ export default function LandingPage() {
             <a href="#cara-pesan" onClick={() => setMenuOpen(false)}>{t("howLabel")}</a>
             <a href="#lokasi" onClick={() => setMenuOpen(false)}>{extra.location}</a>
             <a href="#kontak" onClick={() => setMenuOpen(false)}>{extra.contact}</a>
-            <Link className="btn btn-primary" href="/order?table=3" onClick={() => setMenuOpen(false)}>
+            <Link className="btn btn-primary" href="/order" onClick={() => setMenuOpen(false)}>
               {extra.orderCta}
               <Icon name="arrow-right" />
             </Link>
@@ -249,7 +282,7 @@ export default function LandingPage() {
               </h1>
               <p className="hero-lead">{t("heroLead")}</p>
               <div className="hero-actions">
-                <Link className="btn btn-primary hero-order-cta" href="/order?table=3" prefetch>
+                <Link className="btn btn-primary hero-order-cta" href="/order" prefetch>
                   <Icon name="utensils" />
                   <span>{t("ctaHow")}</span>
                 </Link>
@@ -279,56 +312,80 @@ export default function LandingPage() {
 
 
         <section className="landing-about" id="tentang" aria-labelledby="about-title">
-          <div className="shell about-grid">
-            <div className="about-head">
-              <p className="section-label">{extra.aboutLabel}</p>
-              <h2 id="about-title">{extra.aboutTitle}</h2>
-            </div>
-            <div className="about-carousel">
-              <div className="about-image">
-                <img
-                  src={extra.slides[slide].image}
-                  alt={extra.slides[slide].title}
-                  width={800}
-                  height={600}
-                  loading="lazy"
-                  decoding="async"
-                />
+          <div className="shell">
+            <div className="about-grid">
+              <div className="about-head">
+                <p className="section-label">{extra.aboutLabel}</p>
+                <h2 id="about-title">{extra.aboutTitle}</h2>
               </div>
-              <div className="about-arrows">
+              <div
+                className="about-carousel"
+                onMouseEnter={() => setCarouselPaused(true)}
+                onMouseLeave={() => setCarouselPaused(false)}
+                onFocus={() => setCarouselPaused(true)}
+                onBlur={() => setCarouselPaused(false)}
+              >
+                <div className="about-image">
+                  {extra.aboutPhotos.map((photo, index) => (
+                    <img
+                      key={photo.image}
+                      src={photo.image}
+                      alt={photo.alt}
+                      className={index === slide ? "is-active" : ""}
+                      width={800}
+                      height={600}
+                      loading={index === 0 ? "lazy" : "lazy"}
+                      decoding="async"
+                    />
+                  ))}
+                </div>
                 <button
+                  className="about-arrow about-arrow-prev"
                   type="button"
-                  aria-label="Previous"
-                  onClick={() => setSlide((current) => (current + extra.slides.length - 1) % extra.slides.length)}
+                  aria-label={lang === "id" ? "Foto sebelumnya" : "Previous photo"}
+                  onClick={() => setSlide((current) => (current + photoCount - 1) % photoCount)}
                 >
                   <Icon name="chevron-left" />
                 </button>
                 <button
+                  className="about-arrow about-arrow-next"
                   type="button"
-                  aria-label="Next"
-                  onClick={() => setSlide((current) => (current + 1) % extra.slides.length)}
+                  aria-label={lang === "id" ? "Foto berikutnya" : "Next photo"}
+                  onClick={() => setSlide((current) => (current + 1) % photoCount)}
                 >
                   <Icon name="chevron-right" />
                 </button>
+                <div className="about-dots" role="tablist" aria-label={lang === "id" ? "Pilih foto suasana kantin" : "Select canteen photo"}>
+                  {extra.aboutPhotos.map((photo, index) => (
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={index === slide}
+                      className={index === slide ? "is-active" : ""}
+                      key={photo.image}
+                      aria-label={photo.alt}
+                      onClick={() => setSlide(index)}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="about-copy">
+                <p className="about-lead">{extra.aboutLead}</p>
               </div>
             </div>
-            <div className="about-copy">
-              <p className="about-lead">{extra.aboutLead}</p>
-              <div className="about-slide-copy" aria-live="polite">
-                <h3>{extra.slides[slide].title}</h3>
-                <p>{extra.slides[slide].body}</p>
-              </div>
-              <div className="about-dots">
-                {extra.slides.map((item, index) => (
-                  <button
-                    type="button"
-                    className={index === slide ? "is-active" : ""}
-                    key={item.title}
-                    aria-label={item.title}
-                    onClick={() => setSlide(index)}
-                  />
-                ))}
-              </div>
+
+            <div className="about-highlights">
+              {extra.highlights.map((item) => (
+                <article className="about-highlight" key={item.title}>
+                  <span className="about-highlight-icon" aria-hidden="true">
+                    <Icon name={item.icon} />
+                  </span>
+                  <div className="about-highlight-copy">
+                    <h3>{item.title}</h3>
+                    <p>{item.body}</p>
+                  </div>
+                </article>
+              ))}
             </div>
           </div>
         </section>
@@ -338,35 +395,35 @@ export default function LandingPage() {
             <div className="how-intro">
               <p className="section-label how-label">{t("howLabel")}</p>
               <h2 className="how-title" id="how-title">
-                <span>{t("howTitle1")}</span>
-                <span>{t("howTitle2")}</span>
+                <span>{t(isWhatsappMode ? "howWaTitle1" : "howTitle1")}</span>
+                <span>{t(isWhatsappMode ? "howWaTitle2" : "howTitle2")}</span>
               </h2>
-              <p className="how-lead">{t("howLead")}</p>
+              <p className="how-lead">{t(isWhatsappMode ? "howWaLead" : "howLead")}</p>
               <p className="how-note">
-                <Icon name="qr" />
-                <span>{t("howNote")}</span>
+                <Icon name={isWhatsappMode ? "whatsapp" : "qr"} />
+                <span>{t(isWhatsappMode ? "howWaNote" : "howNote")}</span>
               </p>
             </div>
             <ol className="how-steps">
               <li className="step">
                 <span className="step-num" aria-hidden="true">01</span>
                 <div className="step-copy">
-                  <h3>{t("step1Title")}</h3>
-                  <p>{t("step1Body")}</p>
+                  <h3>{t(isWhatsappMode ? "stepWa1Title" : "step1Title")}</h3>
+                  <p>{t(isWhatsappMode ? "stepWa1Body" : "step1Body")}</p>
                 </div>
               </li>
               <li className="step">
                 <span className="step-num" aria-hidden="true">02</span>
                 <div className="step-copy">
-                  <h3>{t("step2Title")}</h3>
-                  <p>{t("step2Body")}</p>
+                  <h3>{t(isWhatsappMode ? "stepWa2Title" : "step2Title")}</h3>
+                  <p>{t(isWhatsappMode ? "stepWa2Body" : "step2Body")}</p>
                 </div>
               </li>
               <li className="step">
                 <span className="step-num" aria-hidden="true">03</span>
                 <div className="step-copy">
-                  <h3>{t("step3Title")}</h3>
-                  <p>{t("step3Body")}</p>
+                  <h3>{t(isWhatsappMode ? "stepWa3Title" : "step3Title")}</h3>
+                  <p>{t(isWhatsappMode ? "stepWa3Body" : "step3Body")}</p>
                 </div>
               </li>
             </ol>
@@ -437,7 +494,7 @@ export default function LandingPage() {
                     </a>
                   </div>
                 </div>
-                <Link className="btn btn-outline" href="/order?table=3">{extra.orderNow}</Link>
+                
               </div>
             </div>
           </div>
@@ -458,7 +515,6 @@ export default function LandingPage() {
             <a href="#cara-pesan">{t("footerNavHow")}</a>
             <a href="#lokasi">{t("footerNavLocation")}</a>
             <a href="#kontak">{extra.footerContact}</a>
-            <Link href="/login">{t("footerNavStaff")}</Link>
           </nav>
           <div className="footer-info">
             <p><Icon name="pin" /><span>{contactAddress}</span></p>
@@ -472,7 +528,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      <Link className={`landing-order-fab ${pastHero ? "is-visible" : ""}`} href="/order?table=3">
+      <Link className={`landing-order-fab ${pastHero ? "is-visible" : ""}`} href="/order">
         <Icon name="utensils" />
         <span>{t("ctaHow")}</span>
       </Link>

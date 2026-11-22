@@ -88,7 +88,7 @@ export async function loginWithPassword(email: string, password: string) {
 }
 
 export async function loginDemo(role: Role) {
-  if (process.env.DEMO_MODE === "false") {
+  if (process.env.DEMO_MODE !== "true") {
     throw new ApiError(403, "Mode demo dinonaktifkan.");
   }
   const db = await getDb();

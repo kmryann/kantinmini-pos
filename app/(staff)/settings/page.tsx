@@ -14,10 +14,10 @@ export default function SettingsPage() {
   const toast = useToast();
   const [tab, setTab] = useState<Tab>("profile");
   const [name, setName] = useState("Kantin Mini");
-  const [tagline, setTagline] = useState("Kantin lingkungan, rasa rumahan.");
-  const [address, setAddress] = useState("Jl. Melati No. 8, Gedung A, Lantai 1");
-  const [hours, setHours] = useState("Senin–Sabtu, 07.00–15.00");
-  const [description, setDescription] = useState("Kantin lingkungan dengan rasa rumahan. Pesan dari meja, bayar caramu.");
+  const [tagline, setTagline] = useState("Resep Rumahan, Rasa Juara.");
+  const [address, setAddress] = useState("Gang Melong Kaler I no. 1");
+  const [hours, setHours] = useState("Senin–Jumat, 08.00–19.00");
+  const [description, setDescription] = useState("Masakan harian dengan cita rasa Nusantara yang jujur dan ramah di kantong.");
   const [logoPreview, setLogoPreview] = useState("/assets/favicon.svg");
   const [logoUrl, setLogoUrl] = useState("/assets/favicon.svg");
   const [saving, setSaving] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export default function SettingsPage() {
   const [clientKey, setClientKey] = useState("SB-Mid-client-KantinMiniDemo");
   const [serverKey, setServerKey] = useState("SB-Mid-server-KantinMiniDemo");
   const [webhook, setWebhook] = useState("https://kantinmini.id/api/midtrans/webhook");
-  const [orderMode, setOrderMode] = useState<"cashier" | "whatsapp">("cashier");
+  const [orderMode, setOrderMode] = useState<"cashier" | "whatsapp">("whatsapp");
   const [whatsappNumber, setWhatsappNumber] = useState("6285117693117");
 
   useEffect(() => {
@@ -302,8 +302,8 @@ export default function SettingsPage() {
               <Icon name="whatsapp" />
               <span>
                 {orderMode === "whatsapp"
-                  ? (lang === "id" ? "Pelanggan akan diarahkan ke WhatsApp setelah checkout. QRIS memakai QR dinamis yang dibuat dari aset merchant kantin." : "Customers will be redirected to WhatsApp after checkout. QRIS uses a dynamic QR generated from the merchant asset.")
-                  : (lang === "id" ? "Pesanan dibuat di sistem dan masuk ke antrean kasir seperti biasa." : "Orders are created in the system and enter the cashier queue as usual.")}
+                  ? (lang === "id" ? "Pelanggan diarahkan ke WhatsApp setelah checkout dengan QRIS dinamis. Panel POS berjalan sebagai mode preview. Di Vercel, atur ORDER_MODE & WHATSAPP_NUMBER lewat Environment Variables agar permanen." : "Customers are redirected to WhatsApp after checkout with dynamic QRIS. The POS panel runs in preview mode. On Vercel, set ORDER_MODE & WHATSAPP_NUMBER via Environment Variables to persist.")
+                  : (lang === "id" ? "Mode POS berjalan sebagai preview pada penyimpanan lokal/serverless. Untuk operasional produksi di Vercel, dibutuhkan database PostgreSQL eksternal." : "POS mode runs as preview on local/serverless storage. Production use on Vercel requires an external PostgreSQL database.")}
               </span>
             </div>
             <div className="form-actions">

@@ -25,6 +25,14 @@ export function StaffShell({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dateLabel, setDateLabel] = useState("");
+  const [orderMode, setOrderMode] = useState<"cashier" | "whatsapp" | null>(null);
+
+  useEffect(() => {
+    api
+      .settings()
+      .then((settings) => setOrderMode(settings.orderMode))
+      .catch(() => setOrderMode("whatsapp"));
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -208,6 +216,22 @@ export function StaffShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="page min-h-[calc(100vh-78px)]" id="main">
+          {orderMode === "whatsapp" ? (
+            <div className="pos-preview-banner" role="status">
+              <Icon name="alert" />
+              <span>
+                {lang === "id" ? (
+                  <>
+                    <strong>Mode Preview POS</strong> — Pesanan pelanggan saat ini dialihkan ke WhatsApp Kantin dan tidak masuk ke panel POS ini.
+                  </>
+                ) : (
+                  <>
+                    <strong>POS Preview Mode</strong> — Customer orders currently go to Kantin WhatsApp and do not enter this POS panel.
+                  </>
+                )}
+              </span>
+            </div>
+          ) : null}
           {children}
         </main>
       </div>

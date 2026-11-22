@@ -7,7 +7,7 @@ export async function POST(_request: Request, context: { params: Promise<{ token
   try {
     const { token } = await context.params;
     const order = await getOrderByToken(token);
-    const demoAllowed = process.env.DEMO_MODE !== "false";
+    const demoAllowed = process.env.DEMO_MODE === "true";
     const configured = await isMidtransConfigured();
     if (configured && !demoAllowed) {
       throw new ApiError(403, "Pembayaran QRIS harus dikonfirmasi melalui webhook Midtrans.");

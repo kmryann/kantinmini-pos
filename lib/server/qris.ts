@@ -1,16 +1,13 @@
-import { access, readFile } from "node:fs/promises";
-import path from "node:path";
-import sharp from "sharp";
-import jsQR from "jsqr";
 import QRCode from "qrcode";
 
-type GlobalQris = typeof globalThis & {
-  __kantinQrisPayload?: Promise<string>;
-};
+// Verified static EMVCo merchant QRIS payload extracted from public/assets/qr/new-qris.jpeg.
+// Can be overridden via QRIS_MERCHANT_PAYLOAD environment variable without redeploying assets.
+const DEFAULT_MERCHANT_PAYLOAD =
+  "00020101021126650013ID.CO.BCA.WWW011893600014000220405902150008850022040590303UMI51440014ID.CO.QRIS.WWW0215ID10233045203320303UMI5204581453033605802ID5911Kantin Mini6007BANDUNG61054026162070703A016304C345";
 
-const globalForQris = globalThis as GlobalQris;
+export const MAX_QRIS_AMOUNT = 50_000_000;
 
-const crc16 = (input: string) => {
+export const crc16 = (input: string) => {
   let crc = 0xffff;
   for (let index = 0; index < input.length; index += 1) {
     crc ^= input.charCodeAt(index) << 8;
@@ -42,44 +39,21 @@ function parseTLV(payload: string): TLVTag[] {
   return tags;
 }
 
-async function decodeMerchantPayload() {
-  const directory = path.join(process.cwd(), "public", "assets", "qr");
-  const candidates = ["new-qris.jpeg"];
-  let buffer: Buffer | null = null;
-  for (const filename of candidates) {
-    const file = path.join(directory, filename);
-    try {
-      await access(file);
-      buffer = await readFile(file);
-      break;
-    } catch {
-      // Try the next QR asset.
-    }
+export function getMerchantPayload(): string {
+  const envPayload = process.env.QRIS_MERCHANT_PAYLOAD?.trim();
+  const payload = envPayload || DEFAULT_MERCHANT_PAYLOAD;
+  if (!payload.startsWith("000201") || !payload.includes("6304")) {
+    throw new Error("Payload QRIS merchant tidak valid.");
   }
-  if (!buffer) throw new Error("Aset QRIS tidak ditemukan.");
-  const { data, info } = await sharp(buffer)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const decoded = jsQR(new Uint8ClampedArray(data), info.width, info.height);
-  if (!decoded?.data || !decoded.data.startsWith("000201")) {
-    throw new Error("QRIS merchant tidak dapat dibaca.");
-  }
-  return decoded.data;
-}
-
-export function getMerchantPayload() {
-  if (!globalForQris.__kantinQrisPayload) {
-    globalForQris.__kantinQrisPayload = decodeMerchantPayload().catch((error) => {
-      globalForQris.__kantinQrisPayload = undefined;
-      throw error;
-    });
-  }
-  return globalForQris.__kantinQrisPayload;
+  return payload;
 }
 
 export function buildDynamicPayload(merchantPayload: string, amount: number) {
-  const normalizedAmount = String(Math.max(1, Math.round(Number(amount) || 0)));
+  const rounded = Math.round(Number(amount));
+  if (!Number.isFinite(rounded) || rounded < 1 || rounded > MAX_QRIS_AMOUNT) {
+    throw new Error("Nominal QRIS di luar batas yang diizinkan.");
+  }
+  const normalizedAmount = String(rounded);
   const marker = "6304";
   const markerIndex = merchantPayload.lastIndexOf(marker);
   if (markerIndex < 0) throw new Error("Payload QRIS tidak memiliki checksum.");
@@ -120,7 +94,7 @@ export function buildDynamicPayload(merchantPayload: string, amount: number) {
 }
 
 export async function generateQrisPng(amount: number) {
-  const merchantPayload = await getMerchantPayload();
+  const merchantPayload = getMerchantPayload();
   const dynamicPayload = buildDynamicPayload(merchantPayload, amount);
   return QRCode.toBuffer(dynamicPayload, {
     type: "png",

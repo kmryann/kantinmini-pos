@@ -1,4 +1,4 @@
-import { generateQrisPng } from "@/lib/server/qris";
+import { generateQrisPng, MAX_QRIS_AMOUNT } from "@/lib/server/qris";
 import { ApiError, fail } from "@/lib/server/http";
 
 export const runtime = "nodejs";
@@ -7,8 +7,9 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const amount = Number(url.searchParams.get("amount"));
-    if (!Number.isFinite(amount) || amount < 1) {
+    const rawAmount = Number(url.searchParams.get("amount"));
+    const amount = Math.round(rawAmount);
+    if (!Number.isFinite(rawAmount) || amount < 1 || amount > MAX_QRIS_AMOUNT) {
       throw new ApiError(400, "Nominal QRIS tidak valid.");
     }
     const png = await generateQrisPng(amount);
@@ -16,9 +17,9 @@ export async function GET(request: Request) {
     return new Response(new Uint8Array(png), {
       headers: {
         "Content-Type": "image/png",
-        "Cache-Control": "no-store, max-age=0",
+        "Cache-Control": "public, max-age=3600, s-maxage=86400",
         ...(download
-          ? { "Content-Disposition": `attachment; filename="qris-kantinmini-${Math.round(amount)}.png"` }
+          ? { "Content-Disposition": `attachment; filename="qris-kantinmini-${amount}.png"` }
           : {}),
       },
     });

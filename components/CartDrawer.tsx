@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { Icon } from "@/components/Icon";
 import { useCustomer } from "@/components/CustomerProvider";
 import { useToast } from "@/components/ToastProvider";
-import { KANTIN_DATA } from "@/lib/data";
+import { formatIDR } from "@/lib/format";
 import { localized, orderItemSummary } from "@/lib/order-utils";
 import { useLanguage } from "@/lib/i18n";
 import { useModalBack } from "@/lib/use-modal-back";
@@ -77,15 +77,16 @@ export function CartDrawer() {
             <div className="cart-card cart-drawer-card">
               <div className="cart-list">
                 {cart.map((line) => {
-                  const item = KANTIN_DATA.menuById(line.menuId);
-                  const name = line.name || item?.name;
-                  const price = Number(line.price ?? item?.price ?? 0);
-                  const options = (line.optionLabels?.length ? orderItemSummary({ optionLabels: line.optionLabels }, lang) : item ? KANTIN_DATA.orderItemSummary(line, lang) : "");
+                  const name = line.name || { id: line.menuId, en: line.menuId };
+                  const price = Number(line.price ?? 0);
+                  const options = line.optionLabels?.length
+                    ? orderItemSummary({ optionLabels: line.optionLabels }, lang)
+                    : "";
                   return (
                     <div className="cart-item" key={line.lineId}>
                       <div className="cart-thumb">
                         <img
-                          src={line.image || item?.image || "/assets/menu/placeholder.webp"}
+                          src={line.image || "/assets/menu/placeholder.webp"}
                           alt={localized(name, lang)}
                           width={800}
                           height={800}
@@ -122,7 +123,7 @@ export function CartDrawer() {
                             </button>
                           </div>
                           <span className="cart-item-price">
-                            {KANTIN_DATA.formatIDR(price * line.qty)}
+                            {formatIDR(price * line.qty)}
                           </span>
                         </div>
                       </div>
@@ -149,7 +150,7 @@ export function CartDrawer() {
           <div className="cart-drawer-foot">
             <div className="checkout-bar-copy">
               <small>{t("cart.total")}</small>
-              <strong>{KANTIN_DATA.formatIDR(cartTotal)}</strong>
+              <strong>{formatIDR(cartTotal)}</strong>
             </div>
             <Link className="btn" href="/checkout" onClick={closeCart}>
               {t("cart.checkout")}

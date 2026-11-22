@@ -68,8 +68,8 @@
   color: var(--paper);
   font-family: var(--display);
   font-size: clamp(1.1rem, 2.2vw, 1.5rem);
-  font-weight: 750;
-  letter-spacing: -0.045em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   line-height: 1;
   text-align: center;
   text-overflow: ellipsis;
@@ -187,7 +187,7 @@
   font-family: var(--display);
   font-size: clamp(2.25rem, 5.5vw, 3.4rem);
   font-weight: 750;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.025em;
   line-height: 0.96;
 }
 
@@ -335,7 +335,7 @@
   color: var(--ink);
   font-family: var(--display);
   font-size: 1.05rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.25;
 }
@@ -343,7 +343,7 @@
 .menu-category-count {
   color: var(--ink-soft);
   font-size: 0.74rem;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 
@@ -399,10 +399,10 @@
   display: block;
   margin: 0;
   font-family: var(--display);
-  font-size: 1.08rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
+  font-size: 1.05rem;
+  font-weight: 550;
+  letter-spacing: -0.015em;
+  line-height: 1.22;
 }
 
 .menu-desc {
@@ -419,10 +419,10 @@
 .menu-info h2 {
   margin: 0;
   font-family: var(--display);
-  font-size: 1.08rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
+  font-size: 1.05rem;
+  font-weight: 550;
+  letter-spacing: -0.015em;
+  line-height: 1.22;
 }
 
 .menu-info p {
@@ -443,14 +443,14 @@
   margin-top: 12px;
   color: var(--ink);
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 550;
 }
 
 .menu-price strong {
   font-family: var(--display);
-  font-size: 0.95rem;
-  font-weight: 750;
-  letter-spacing: -0.02em;
+  font-size: 0.94rem;
+  font-weight: 550;
+  letter-spacing: -0.01em;
 }
 
 .menu-fav {
@@ -463,8 +463,8 @@
   gap: 4px;
   margin-bottom: 3px;
   color: #b13c2c;
-  font-size: 0.62rem;
-  font-weight: 700;
+  font-size: 0.64rem;
+  font-weight: 550;
   line-height: 1.2;
 }
 
@@ -515,7 +515,7 @@
   min-width: 20px;
   color: var(--ink);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
 }
 
@@ -674,7 +674,7 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .cart-bar-text {
@@ -837,10 +837,10 @@
 .sheet-head h2 {
   margin: 0;
   font-family: var(--display);
-  font-size: 1.35rem;
-  font-weight: 750;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .sheet-head p {
@@ -864,10 +864,10 @@
 .sheet-body h2 {
   margin: 0;
   font-family: var(--display);
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  font-weight: 750;
-  letter-spacing: -0.045em;
-  line-height: 1.05;
+  font-size: clamp(1.45rem, 4vw, 1.9rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .sheet-price {
@@ -875,9 +875,9 @@
   margin-top: 6px;
   color: var(--green-deep);
   font-family: var(--display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 .sheet-desc {
@@ -1081,9 +1081,9 @@
 
 .checkout-item-copy h3 {
   margin: 0;
-  font-size: 0.84rem;
-  font-weight: 650;
-  line-height: 1.25;
+  font-size: 0.86rem;
+  font-weight: 550;
+  line-height: 1.3;
 }
 
 .checkout-item-copy p {
@@ -1123,9 +1123,9 @@
 
 .checkout-item-price {
   font-family: var(--display);
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 0.88rem;
+  font-weight: 550;
+  letter-spacing: -0.01em;
   text-align: right;
 }
 
@@ -1182,7 +1182,7 @@
   gap: 7px;
   margin: 0 0 8px;
   font-size: 0.82rem;
-  font-weight: 650;
+  font-weight: 550;
 }
 
 .option-required {
@@ -1190,8 +1190,8 @@
   border-radius: 999px;
   background: rgba(226, 97, 70, 0.09);
   color: #a63c2a;
-  font-size: 0.57rem;
-  font-weight: 700;
+  font-size: 0.58rem;
+  font-weight: 550;
 }
 
 .option-choice-list {
@@ -1356,9 +1356,9 @@
 
 .cart-item-copy h3 {
   margin: 0;
-  font-size: 0.84rem;
-  font-weight: 650;
-  line-height: 1.25;
+  font-size: 0.86rem;
+  font-weight: 550;
+  line-height: 1.3;
 }
 
 .cart-item-copy p {
@@ -1383,9 +1383,9 @@
 
 .cart-item-price {
   font-family: var(--display);
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 0.88rem;
+  font-weight: 550;
+  letter-spacing: -0.01em;
 }
 
 .cart-remove {
@@ -1521,9 +1521,9 @@
   gap: 7px;
   margin: 0 0 13px;
   font-family: var(--display);
-  font-size: 1.02rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 .payment-card h2 .icon {
@@ -1539,8 +1539,8 @@
 
 .pay-field label {
   color: var(--ink);
-  font-size: 0.74rem;
-  font-weight: 600;
+  font-size: 0.76rem;
+  font-weight: 500;
 }
 
 .pay-field .input {
@@ -1614,8 +1614,8 @@
 
 .pay-method-copy strong {
   display: block;
-  font-size: 0.82rem;
-  font-weight: 650;
+  font-size: 0.84rem;
+  font-weight: 550;
 }
 
 .pay-method-copy small {
@@ -1892,7 +1892,7 @@
   font-family: var(--display);
   font-size: clamp(2rem, 5vw, 2.8rem);
   font-weight: 750;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.025em;
   line-height: 1;
 }
 
@@ -2087,8 +2087,8 @@
   margin: 0;
   font-family: var(--display);
   font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 .status-details-head span {
@@ -2123,7 +2123,7 @@
 
 .status-detail-line strong {
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 500;
   text-align: right;
 }
 
@@ -2137,13 +2137,14 @@
 
 .status-detail-total {
   padding-top: 14px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .status-detail-total strong {
   font-family: var(--display);
-  font-size: 1.08rem;
-  letter-spacing: -0.02em;
+  font-size: 1.06rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 .status-actions {
@@ -2873,7 +2874,7 @@ body.cart-open {
   color: var(--ink-soft);
   cursor: pointer;
   font-size: 0.78rem;
-  font-weight: 650;
+  font-weight: 550;
 }
 
 .checkout-service-btn .icon {
@@ -2903,8 +2904,8 @@ body.cart-open {
   color: var(--ink);
   font-family: var(--display);
   font-size: 1rem;
-  font-weight: 750;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 .checkout-qris-box img {
@@ -2975,7 +2976,7 @@ body.cart-open {
   margin: 4px 0 0;
   color: rgba(255, 253, 247, 0.62);
   font-size: 0.62rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -2985,9 +2986,9 @@ body.cart-open {
   margin: 0;
   font-family: var(--display);
   font-size: clamp(1.6rem, 6vw, 2.2rem);
-  font-weight: 750;
-  letter-spacing: -0.04em;
-  line-height: 1;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
 }
 
 .wa-status-hero > p:not(.wa-status-kicker) {
@@ -3006,7 +3007,7 @@ body.cart-open {
   color: var(--mango);
   font-family: var(--display);
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.03em;
 }
 
@@ -3139,5 +3140,220 @@ body.cart-open {
   .order-skeleton-title {
     width: 75%;
     height: 38px;
+  }
+}
+
+/* Shared primitives used by customer modals, checkout & receipt print */
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.icon-btn:hover {
+  border-color: var(--ink);
+  background: var(--white);
+}
+
+.icon-btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.cell-muted {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(14, 42, 34, 0.44);
+  opacity: 0;
+  visibility: hidden;
+  backdrop-filter: blur(5px);
+  transition: opacity 180ms ease, visibility 180ms ease;
+}
+
+.modal.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-card {
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  border: 1px solid rgba(14, 42, 34, 0.12);
+  border-radius: 20px;
+  background: var(--white);
+  box-shadow: 0 30px 80px rgba(14, 42, 34, 0.28);
+  transform: translateY(12px) scale(0.99);
+  transition: transform 180ms ease;
+}
+
+.modal.is-open .modal-card {
+  transform: translateY(0) scale(1);
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.25rem;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.modal-head p {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.checkout-qris-hint {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--mint);
+  color: var(--green-deep);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* Customer receipt print */
+.receipt-paper {
+  width: 80mm;
+  max-width: 100%;
+  padding: 14px 13px;
+  background: #fff;
+  box-shadow: 0 4px 18px rgba(14, 42, 34, 0.08);
+  color: #1a1a1a;
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.receipt-paper[data-width="58"] {
+  width: 58mm;
+  font-size: 9px;
+}
+
+.receipt-paper h4 {
+  margin: 0;
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.receipt-paper .receipt-sub {
+  margin: 2px 0 0;
+  color: #555;
+  font-size: 8px;
+  text-align: center;
+}
+
+.receipt-paper hr {
+  margin: 7px 0;
+  border: 0;
+  border-top: 1px dashed #999;
+}
+
+.receipt-paper .receipt-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.receipt-paper .receipt-line small {
+  color: #555;
+}
+
+.receipt-total-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.receipt-thanks {
+  margin-top: 7px;
+  font-size: 8px;
+  text-align: center;
+}
+
+.receipt-print {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    width: 100%;
+    gap: 8mm;
+    padding: 0;
+    background: #fff;
+  }
+
+  .receipt-paper {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 4mm;
   }
 }

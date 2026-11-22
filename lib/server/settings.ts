@@ -6,7 +6,17 @@ export async function getAppSettings(): Promise<AppSettings> {
   const result = await db.query<{ value: Partial<AppSettings> }>(
     "select value from app_settings where key = 'app' limit 1",
   );
-  return { ...DEFAULT_SETTINGS, ...(result.rows[0]?.value || {}) };
+  const envOrderMode =
+    process.env.ORDER_MODE === "whatsapp" || process.env.ORDER_MODE === "cashier"
+      ? process.env.ORDER_MODE
+      : undefined;
+  const envWhatsapp = process.env.WHATSAPP_NUMBER?.replace(/[^\d]/g, "");
+  return {
+    ...DEFAULT_SETTINGS,
+    ...(result.rows[0]?.value || {}),
+    ...(envOrderMode ? { orderMode: envOrderMode } : {}),
+    ...(envWhatsapp ? { whatsappNumber: envWhatsapp } : {}),
+  };
 }
 
 export async function updateAppSettings(patch: Partial<AppSettings>): Promise<AppSettings> {

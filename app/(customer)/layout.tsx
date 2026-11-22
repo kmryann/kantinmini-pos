@@ -1,3 +1,4 @@
+import "@/app/styles/customer.css";
 import { CartDrawer } from "@/components/CartDrawer";
 import { CustomerHeader } from "@/components/CustomerHeader";
 import { CustomerProvider } from "@/components/CustomerProvider";

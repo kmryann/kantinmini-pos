@@ -134,7 +134,7 @@ export default function WhatsAppStatusPage() {
       <div className="receipt-print print-area" aria-hidden="true">
         <div className="receipt-paper" data-width="80">
           <h4>{site?.name || "Kantin Mini"}</h4>
-          <p className="receipt-sub">{site?.address || "Jl. Melati No. 8, Gedung A, Lantai 1"}</p>
+          <p className="receipt-sub">{site?.address || "Gang Melong Kaler I no. 1"}</p>
           <p className="receipt-sub">{t("receipt.customer")}</p>
           <hr />
           <div className="receipt-line"><span>{lang === "id" ? "Referensi" : "Reference"}</span><span>{order.reference}</span></div>

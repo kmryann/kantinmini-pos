@@ -9,7 +9,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { KANTIN_DATA } from "@/lib/data";
 import {
   readCart,
   writeCart,
@@ -46,7 +45,7 @@ const signature = (line: Omit<CartLine, "lineId"> | CartLine) =>
 
 export function CustomerProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartLine[]>([]);
-  const [context, setContextState] = useState<OrderContext>({ type: "dine-in", table: 3 });
+  const [context, setContextState] = useState<OrderContext>({ type: "dine-in", table: null });
   const [ready, setReady] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -110,8 +109,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const cartTotal = useMemo(
     () =>
       cart.reduce((sum, line) => {
-        const menu = KANTIN_DATA.menuById(line.menuId);
-        const price = Number(line.price ?? menu?.price ?? 0);
+        const price = Number(line.price ?? 0);
         return sum + price * Number(line.qty || 0);
       }, 0),
     [cart],

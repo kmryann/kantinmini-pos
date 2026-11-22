@@ -57,7 +57,7 @@ export function resolveContextFromLocation(): OrderContext {
   const type = params.get("type");
   if (type === "takeaway") return { type: "takeaway", table: null };
   if (table) return { type: "dine-in", table: Number(table) || 1 };
-  return readContext() || { type: "dine-in", table: 3 };
+  return readContext() || { type: "dine-in", table: null };
 }
 
 export type ActiveOrderRef = {
