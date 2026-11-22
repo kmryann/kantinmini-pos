@@ -7,6 +7,41 @@ import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { api } from "@/lib/api-client";
 import type { PublicSettings } from "@/lib/api-types";
 import { useLanguage } from "@/lib/i18n";
+import { DEFAULT_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo";
+
+const RESTAURANT_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Restaurant",
+  name: SITE_NAME,
+  description: DEFAULT_DESCRIPTION,
+  url: SITE_URL,
+  image: `${SITE_URL}/assets/og-image.jpg`,
+  logo: `${SITE_URL}/assets/icon-96.png`,
+  telephone: "+6285117693117",
+  priceRange: "Rp",
+  servesCuisine: ["Indonesian", "Masakan Rumahan", "Katsu", "Pempek"],
+  hasMenu: `${SITE_URL}/order`,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Gang Melong Kaler I No. 1",
+    addressLocality: "Bandung",
+    addressRegion: "Jawa Barat",
+    postalCode: "40261",
+    addressCountry: "ID",
+  },
+  openingHoursSpecification: [
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      opens: "08:00",
+      closes: "19:00",
+    },
+  ],
+  sameAs: [
+    "https://instagram.com/kantinmini.id",
+    "https://tiktok.com/@kantinmini.id",
+  ],
+};
 
 export default function LandingPage() {
   const { t, lang } = useLanguage();
@@ -220,6 +255,10 @@ export default function LandingPage() {
         as="image"
         href="/assets/hero/hero-kantin-lg.webp"
         media="(min-width: 641px)"
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(RESTAURANT_JSON_LD) }}
       />
       <a className="skip-link" href="#main">
         {t("skipLink")}

@@ -1,8 +1,8 @@
 // Generated from the static prototype dictionaries.
 export const dictionaries = {
   id: {
-  "pageTitle": "Kantin Mini — Makan enak, tanpa antre",
-  "metaDescription": "Pesan dari meja lewat QR, bayar QRIS atau cash, dan pantau pesanan sampai siap. Kantin Mini, kantin lingkungan dengan rasa rumahan.",
+  "pageTitle": "Kantin Mini Bandung — Masakan Rumahan Sejak 1986",
+  "metaDescription": "Masakan rumahan hangat & ramah di kantong di Gang Melong Kaler I No. 1, Bandung. Katsu, Pempek Palembang, ayam geprek, mie, hingga minuman segar. Pesan online dengan mudah, bayar QRIS atau cash.",
   "skipLink": "Lewati ke konten",
   "langGroup": "Pilih bahasa",
   "headerHours": "Senin–Jumat, 08.00–19.00",
@@ -636,8 +636,8 @@ export const dictionaries = {
   "status.print": "Cetak struk"
 },
   en: {
-  "pageTitle": "Kantin Mini — Good food, no queue",
-  "metaDescription": "Order from your table with a QR scan, pay with QRIS or cash, and follow your order until it’s ready. Kantin Mini, a neighborhood canteen with home-style food.",
+  "pageTitle": "Kantin Mini Bandung — Home-Style Indonesian Food Since 1986",
+  "metaDescription": "Warm, pocket-friendly home-style Indonesian dishes at Gang Melong Kaler I No. 1, Bandung. Katsu, authentic Palembang Pempek, noodles, and refreshing drinks. Order online easily with QRIS or cash.",
   "skipLink": "Skip to content",
   "langGroup": "Choose language",
   "headerHours": "Mon–Fri, 08.00–19.00",
