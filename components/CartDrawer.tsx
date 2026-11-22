@@ -84,7 +84,28 @@ export function CartDrawer() {
                     : "";
                   return (
                     <div className="cart-item" key={line.lineId}>
-                      <div className="cart-thumb">
+                      <div className="cart-item-copy">
+                        <h3>{localized(name, lang)}</h3>
+                        {options ? <p>{options}</p> : null}
+                        {line.note ? <p className="cart-note">{t("cart.note")}: {line.note}</p> : null}
+                        <div className="cart-item-bottom">
+                          <span className="cart-item-price">
+                            {formatIDR(price * line.qty)}
+                          </span>
+                          <button
+                            className="cart-remove"
+                            type="button"
+                            aria-label={t("cart.remove")}
+                            onClick={() => {
+                              removeLine(line.lineId);
+                              toast(t("cart.removed"));
+                            }}
+                          >
+                            <Icon name="trash" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="cart-item-media">
                         <img
                           src={line.image || "/assets/menu/placeholder.webp"}
                           alt={localized(name, lang)}
@@ -92,52 +113,31 @@ export function CartDrawer() {
                           height={800}
                           decoding="async"
                         />
-                      </div>
-                      <div className="cart-item-copy">
-                        <h3>{localized(name, lang)}</h3>
-                        {options ? <p>{options}</p> : null}
-                        {line.note ? <p className="cart-note">{t("cart.note")}: {line.note}</p> : null}
-                        <div className="cart-item-bottom">
-                          <div className="qty-stepper">
-                            <button
-                              type="button"
-                              aria-label="Kurangi jumlah"
-                              onClick={() => {
-                                if (line.qty > 1) {
-                                  updateLine(line.lineId, { qty: line.qty - 1 });
-                                } else {
-                                  removeLine(line.lineId);
-                                  toast(t("cart.removed"));
-                                }
-                              }}
-                            >
-                              <Icon name="minus" />
-                            </button>
-                            <span>{line.qty}</span>
-                            <button
-                              type="button"
-                              aria-label="Tambah jumlah"
-                              onClick={() => updateLine(line.lineId, { qty: line.qty + 1 })}
-                            >
-                              <Icon name="plus" />
-                            </button>
-                          </div>
-                          <span className="cart-item-price">
-                            {formatIDR(price * line.qty)}
-                          </span>
+                        <div className="menu-qty">
+                          <button
+                            type="button"
+                            aria-label="Kurangi jumlah"
+                            onClick={() => {
+                              if (line.qty > 1) {
+                                updateLine(line.lineId, { qty: line.qty - 1 });
+                              } else {
+                                removeLine(line.lineId);
+                                toast(t("cart.removed"));
+                              }
+                            }}
+                          >
+                            <Icon name="minus" />
+                          </button>
+                          <span>{line.qty}</span>
+                          <button
+                            type="button"
+                            aria-label="Tambah jumlah"
+                            onClick={() => updateLine(line.lineId, { qty: line.qty + 1 })}
+                          >
+                            <Icon name="plus" />
+                          </button>
                         </div>
                       </div>
-                      <button
-                        className="cart-remove"
-                        type="button"
-                        aria-label={t("cart.remove")}
-                        onClick={() => {
-                          removeLine(line.lineId);
-                          toast(t("cart.removed"));
-                        }}
-                      >
-                        <Icon name="trash" />
-                      </button>
                     </div>
                   );
                 })}

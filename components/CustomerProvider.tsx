@@ -55,6 +55,14 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     setContextState(next);
     saveContext(next);
     setReady(true);
+
+    const syncExpired = () => {
+      if (document.visibilityState === "visible") {
+        setCart(readCart());
+      }
+    };
+    document.addEventListener("visibilitychange", syncExpired);
+    return () => document.removeEventListener("visibilitychange", syncExpired);
   }, []);
 
   useEffect(() => {

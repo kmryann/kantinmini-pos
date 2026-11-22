@@ -13,7 +13,7 @@ import { localized, orderItemSummary, optionLabelsFor } from "@/lib/order-utils"
 import { useMenuData } from "@/lib/use-menu";
 import { useModalBack } from "@/lib/use-modal-back";
 import { useLanguage } from "@/lib/i18n";
-import { createWhatsAppReference, saveActiveOrderRef, saveWhatsAppOrder } from "@/lib/customer-storage";
+import { createWhatsAppReference, saveActiveOrderRef, saveWhatsAppOrder, writeCart } from "@/lib/customer-storage";
 
 const nextTime = () => {
   const date = new Date(Date.now() + 30 * 60000);
@@ -206,6 +206,8 @@ export default function CheckoutPage() {
       createdAt: new Date().toISOString(),
       waUrl,
     });
+    writeCart([]);
+    clearCart();
     window.location.assign("/whatsapp-status?send=1");
   };
 
@@ -292,39 +294,43 @@ export default function CheckoutPage() {
               <div className="checkout-item-list">
                 {itemLines.map((line, index) => (
                   <div className="checkout-item" key={cart[index].lineId}>
-                    <div className="checkout-item-thumb">
-                      <img src={cart[index].image || menuById(line.menuId)?.image || "/assets/menu/placeholder.webp"} alt={localized(line.name, lang)} width={800} height={800} decoding="async" />
-                    </div>
                     <div className="checkout-item-copy">
                       <h3>{localized(line.name, lang)}</h3>
                       {line.optionsLabel ? <p>{line.optionsLabel}</p> : null}
                       {line.note ? <p className="cart-note">{t("cart.note")}: {line.note}</p> : null}
-                      <div className="checkout-item-controls">
-                        <div className="qty-stepper checkout-stepper">
-                          <button
-                            type="button"
-                            aria-label="Kurangi jumlah"
-                            onClick={() => {
-                              if (line.qty > 1) {
-                                updateLine(cart[index].lineId, { qty: line.qty - 1 });
-                              } else {
-                                removeLine(cart[index].lineId);
-                                toast(t("cart.removed"));
-                              }
-                            }}
-                          >
-                            <Icon name="minus" />
-                          </button>
-                          <span>{line.qty}</span>
-                          <button
-                            type="button"
-                            aria-label="Tambah jumlah"
-                            onClick={() => updateLine(cart[index].lineId, { qty: line.qty + 1 })}
-                          >
-                            <Icon name="plus" />
-                          </button>
-                        </div>
-                        <strong className="checkout-item-price">{formatIDR(line.price * line.qty)}</strong>
+                      <strong className="checkout-item-price">{formatIDR(line.price * line.qty)}</strong>
+                    </div>
+                    <div className="checkout-item-media">
+                      <img
+                        src={cart[index].image || menuById(line.menuId)?.image || "/assets/menu/placeholder.webp"}
+                        alt={localized(line.name, lang)}
+                        width={800}
+                        height={800}
+                        decoding="async"
+                      />
+                      <div className="menu-qty">
+                        <button
+                          type="button"
+                          aria-label="Kurangi jumlah"
+                          onClick={() => {
+                            if (line.qty > 1) {
+                              updateLine(cart[index].lineId, { qty: line.qty - 1 });
+                            } else {
+                              removeLine(cart[index].lineId);
+                              toast(t("cart.removed"));
+                            }
+                          }}
+                        >
+                          <Icon name="minus" />
+                        </button>
+                        <span>{line.qty}</span>
+                        <button
+                          type="button"
+                          aria-label="Tambah jumlah"
+                          onClick={() => updateLine(cart[index].lineId, { qty: line.qty + 1 })}
+                        >
+                          <Icon name="plus" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -339,7 +345,11 @@ export default function CheckoutPage() {
                   {lang === "id" ? "Tipe pesanan" : "Order type"}
                   <span className="required-star" aria-hidden="true">*</span>
                 </span>
-                <div className="checkout-service-options" role="group" aria-label={lang === "id" ? "Tipe pesanan" : "Order type"}>
+                <div
+                  className={`checkout-service-options ${typeError ? "is-invalid" : ""}`}
+                  role="group"
+                  aria-label={lang === "id" ? "Tipe pesanan" : "Order type"}
+                >
                   {(["dine-in", "takeaway"] as const).map((value) => (
                     <button
                       key={value}
@@ -369,9 +379,10 @@ export default function CheckoutPage() {
                   <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <input
-                  className="input"
+                  className={`input ${timeError ? "is-invalid" : ""}`}
                   id="checkout-time"
                   type="time"
+                  aria-invalid={timeError}
                   value={fulfillmentTime}
                   onChange={(event) => {
                     setFulfillmentTime(event.target.value);
@@ -404,7 +415,8 @@ export default function CheckoutPage() {
               </h2>
               <div className="pay-field">
                 <input
-                  className="input"
+                  className={`input ${nameError ? "is-invalid" : ""}`}
+                  aria-invalid={nameError}
                   value={name}
                   onChange={(event) => {
                     setName(event.target.value);
