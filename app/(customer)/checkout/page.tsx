@@ -161,11 +161,9 @@ export default function CheckoutPage() {
     const number = normalizeWhatsapp(settings.whatsappNumber || "6285117693117");
     const reference = createWhatsAppReference();
     const lines = itemLines.map((line) => {
-      const extras = [
-        line.optionsLabel ? ` (${line.optionsLabel})` : "",
-        line.note ? ` — ${line.note}` : "",
-      ].join("");
-      return `- ${line.qty}x ${localized(line.name, lang)}${extras} (${formatIDR(line.price * line.qty)})`;
+      const optionsPart = line.optionsLabel ? ` (${line.optionsLabel})` : "";
+      const notePart = line.note ? ` — catatan: ${line.note}` : "";
+      return `- ${localized(line.name, lang)}${optionsPart}: ${formatIDR(line.price)} x ${line.qty} = ${formatIDR(line.price * line.qty)}${notePart}`;
     });
     const paymentLine =
       method === "QRIS"
@@ -173,7 +171,6 @@ export default function CheckoutPage() {
         : "Pembayaran: Cash";
     const message = [
       "Halo Kantin Mini!",
-      `Ref: ${reference}`,
       `Nama: ${name.trim()}`,
       `Tipe pesanan: ${typeLabel}`,
       `${timeLabel}: ${fulfillmentTime}`,
@@ -337,31 +334,40 @@ export default function CheckoutPage() {
 
             <section className="payment-card" id="checkout-order-type">
               <h2><Icon name="bag" /><span>{lang === "id" ? "Detail pesanan" : "Order details"}</span></h2>
-              <div className="checkout-service-options" role="group" aria-label={lang === "id" ? "Tipe pesanan" : "Order type"}>
-                {(["dine-in", "takeaway"] as const).map((value) => (
-                  <button
-                    key={value}
-                    className={`checkout-service-btn ${orderType === value ? "is-selected" : ""}`}
-                    type="button"
-                    aria-pressed={orderType === value}
-                    onClick={() => {
-                      setOrderType(value);
-                      setTypeError(false);
-                      setContext({ type: value, table: value === "takeaway" ? null : context.table });
-                    }}
-                  >
-                    <Icon name={value === "takeaway" ? "bag" : "utensils"} />
-                    <span>{value === "takeaway" ? t("common.takeaway") : t("common.dineIn")}</span>
-                  </button>
-                ))}
-              </div>
-              {typeError ? (
-                <span className="field-error is-visible" style={{ marginTop: 8 }}>
-                  {lang === "id" ? "Pilih tipe pesanan terlebih dahulu." : "Please select an order type."}
+              <div className="pay-field">
+                <span className="checkout-field-label">
+                  {lang === "id" ? "Tipe pesanan" : "Order type"}
+                  <span className="required-star" aria-hidden="true">*</span>
                 </span>
-              ) : null}
+                <div className="checkout-service-options" role="group" aria-label={lang === "id" ? "Tipe pesanan" : "Order type"}>
+                  {(["dine-in", "takeaway"] as const).map((value) => (
+                    <button
+                      key={value}
+                      className={`checkout-service-btn ${orderType === value ? "is-selected" : ""}`}
+                      type="button"
+                      aria-pressed={orderType === value}
+                      onClick={() => {
+                        setOrderType(value);
+                        setTypeError(false);
+                        setContext({ type: value, table: value === "takeaway" ? null : context.table });
+                      }}
+                    >
+                      <Icon name={value === "takeaway" ? "bag" : "utensils"} />
+                      <span>{value === "takeaway" ? t("common.takeaway") : t("common.dineIn")}</span>
+                    </button>
+                  ))}
+                </div>
+                {typeError ? (
+                  <span className="field-error is-visible">
+                    {lang === "id" ? "Pilih tipe pesanan terlebih dahulu." : "Please select an order type."}
+                  </span>
+                ) : null}
+              </div>
               <div className="pay-field" style={{ marginTop: 14 }}>
-                <label htmlFor="checkout-time">{timeLabel}</label>
+                <label htmlFor="checkout-time">
+                  {timeLabel}
+                  <span className="required-star" aria-hidden="true">*</span>
+                </label>
                 <input
                   className="input"
                   id="checkout-time"
@@ -389,7 +395,13 @@ export default function CheckoutPage() {
             </section>
 
             <section className="payment-card" id="checkout-name">
-              <h2><Icon name="user" /><span>{t("payment.name")}</span></h2>
+              <h2>
+                <Icon name="user" />
+                <span>
+                  {t("payment.name")}
+                  <span className="required-star" aria-hidden="true">*</span>
+                </span>
+              </h2>
               <div className="pay-field">
                 <input
                   className="input"
@@ -407,7 +419,13 @@ export default function CheckoutPage() {
             </section>
 
             <section className="payment-card">
-              <h2><Icon name="wallet" /><span>{t("payment.method")}</span></h2>
+              <h2>
+                <Icon name="wallet" />
+                <span>
+                  {t("payment.method")}
+                  <span className="required-star" aria-hidden="true">*</span>
+                </span>
+              </h2>
               <div className="pay-methods" role="radiogroup" aria-label={t("payment.method")}>
                 {(["QRIS", "Cash"] as const).map((value) => (
                   <button
@@ -447,50 +465,56 @@ export default function CheckoutPage() {
       {qrisOpen ? (
         <div className="modal is-open" role="dialog" aria-modal="true" aria-labelledby="checkout-qris-title">
           <div className="modal-card checkout-qris-modal">
-            <div className="modal-head">
+            <div className="modal-head checkout-qris-head">
               <div>
                 <h2 id="checkout-qris-title">{lang === "id" ? "Pembayaran QRIS" : "QRIS payment"}</h2>
-                <p>{lang === "id" ? "Pindai QRIS, lalu tekan tombol setelah membayar." : "Scan the QRIS, then confirm once paid."}</p>
+                <p>{lang === "id" ? "Scan QRIS, lalu tekan tombol di bawah setelah bayar." : "Scan QRIS, then tap the button below once paid."}</p>
               </div>
               <button className="icon-btn" type="button" aria-label={t("common.close")} onClick={() => setQrisOpen(false)}>
                 <Icon name="x" />
               </button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body checkout-qris-body">
               <div className="checkout-qris-box">
-                <p className="checkout-qris-merchant">{settings.name || "Kantin Mini"}</p>
-                <img
-                  src={`/api/qris?amount=${checkoutTotal}`}
-                  alt="QRIS Kantin Mini"
-                  width={800}
-                  height={800}
-                  decoding="async"
-                  onError={(event) => {
-                    if (event.currentTarget.dataset.fallback) return;
-                    event.currentTarget.dataset.fallback = "1";
-                    event.currentTarget.src = "/assets/qr/new-qris.jpeg";
-                  }}
-                />
-                <strong>{formatIDR(checkoutTotal)}</strong>
-                <p>{t("status.qrisDesc")}</p>
+                <div className="checkout-qris-top">
+                  <p className="checkout-qris-merchant">{settings.name || "Kantin Mini"}</p>
+                  <strong className="checkout-qris-amount">{formatIDR(checkoutTotal)}</strong>
+                </div>
+                <div className="checkout-qris-stage">
+                  <img
+                    src={`/api/qris?amount=${checkoutTotal}`}
+                    alt="QRIS Kantin Mini"
+                    width={720}
+                    height={720}
+                    decoding="async"
+                    onError={(event) => {
+                      if (event.currentTarget.dataset.fallback) return;
+                      event.currentTarget.dataset.fallback = "1";
+                      event.currentTarget.src = "/assets/qr/new-qris.jpeg";
+                    }}
+                  />
+                  <div className="checkout-qris-subrow">
+                    <a
+                      className="checkout-qris-download"
+                      href={`/api/qris?amount=${checkoutTotal}&download=1`}
+                      download={`qris-kantinmini-${checkoutTotal}.png`}
+                    >
+                      <Icon name="download" />
+                      <span>{lang === "id" ? "Unduh QR" : "Download QR"}</span>
+                    </a>
+                  </div>
+                </div>
               </div>
               <p className="checkout-qris-hint">
                 {lang === "id"
-                  ? "Setelah membayar, simpan screenshot bukti transfer lalu lampirkan saat chat WhatsApp terbuka."
-                  : "After paying, save a screenshot of your payment receipt and attach it when WhatsApp opens."}
+                  ? "Simpan screenshot bukti bayar untuk dilampirkan di chat WhatsApp."
+                  : "Save a screenshot of your payment receipt to attach in WhatsApp."}
               </p>
             </div>
-            <div className="modal-foot">
-              <a
-                className="btn btn-outline"
-                href={`/api/qris?amount=${checkoutTotal}&download=1`}
-                download={`qris-kantinmini-${checkoutTotal}.png`}
-              >
-                <Icon name="download" />
-                <span>{lang === "id" ? "Unduh QR" : "Download QR"}</span>
-              </a>
-              <button className="btn btn-primary" type="button" onClick={sendToWhatsapp}>
-                {lang === "id" ? "Saya sudah bayar" : "I have paid"}
+            <div className="modal-foot checkout-qris-foot">
+              <button className="btn btn-primary checkout-qris-confirm" type="button" onClick={sendToWhatsapp}>
+                <Icon name="whatsapp" />
+                <span>{lang === "id" ? "Sudah bayar & kirim pesanan" : "I've paid & send order"}</span>
               </button>
             </div>
           </div>

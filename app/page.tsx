@@ -155,7 +155,11 @@ export default function LandingPage() {
   const whatsappNumber = (site?.whatsappNumber || "6285117693117").replace(/\D/g, "").replace(/^0/, "62");
   const whatsappLocal = whatsappNumber.startsWith("62") ? `0${whatsappNumber.slice(2)}` : whatsappNumber;
   const whatsappDisplay = whatsappLocal.replace(/(\d{4})(\d{4})(\d+)/, "$1-$2-$3");
-  const whatsappLink = `https://wa.me/${whatsappNumber}`;
+  const defaultContactText =
+    lang === "id"
+      ? "Halo Kantin Mini, saya ingin bertanya tentang menu atau pesanan."
+      : "Hi Kantin Mini, I would like to ask about the menu or an order.";
+  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(defaultContactText)}`;
   const contactAddress = site?.address || extra.address;
   const contactHours = site?.hours || extra.hours;
   const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contactAddress)}`;

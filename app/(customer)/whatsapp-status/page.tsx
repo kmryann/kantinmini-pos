@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { useCustomer } from "@/components/CustomerProvider";
@@ -15,19 +16,26 @@ import { localized } from "@/lib/order-utils";
 import { useLanguage } from "@/lib/i18n";
 
 export default function WhatsAppStatusPage() {
+  const router = useRouter();
   const { t, lang } = useLanguage();
   const { clearCart } = useCustomer();
   const [order, setOrder] = useState<WhatsAppOrderSnapshot | null>(null);
+  const [ready, setReady] = useState(false);
   const [site, setSite] = useState<PublicSettings | null>(null);
   const redirected = useRef(false);
 
   useEffect(() => {
     document.title = `${lang === "id" ? "Status WhatsApp" : "WhatsApp status"} · Kantin Mini`;
     const saved = readWhatsAppOrder();
+    if (!saved) {
+      router.replace("/order");
+      return;
+    }
     setOrder(saved);
-    if (saved) clearCart();
+    setReady(true);
+    clearCart();
     api.settings().then(setSite).catch(() => setSite(null));
-  }, [lang, clearCart]);
+  }, [lang, clearCart, router]);
 
   useEffect(() => {
     if (!order || redirected.current) return;
@@ -38,24 +46,8 @@ export default function WhatsAppStatusPage() {
     window.location.assign(order.waUrl);
   }, [order]);
 
-  if (!order) {
-    return (
-      <main className="cust-main cust-narrow cust-page">
-        <div className="empty-state">
-          <span className="empty-icon"><Icon name="whatsapp" /></span>
-          <h2>{lang === "id" ? "Belum ada pesanan WhatsApp" : "No WhatsApp order yet"}</h2>
-          <p>
-            {lang === "id"
-              ? "Pesan dari menu, lalu kirim pesanan melalui WhatsApp."
-              : "Order from the menu, then send your order through WhatsApp."}
-          </p>
-          <Link className="btn btn-primary btn-sm" href="/order">
-            <span>{t("cart.browse")}</span>
-            <Icon name="arrow-right" />
-          </Link>
-        </div>
-      </main>
-    );
+  if (!ready || !order) {
+    return <main className="cust-main cust-narrow cust-page wa-status-page" />;
   }
 
   const typeLabel = order.type === "takeaway" ? t("common.takeaway") : t("common.dineIn");
@@ -84,7 +76,10 @@ export default function WhatsAppStatusPage() {
             ? "Ringkasan pesanan sudah tersimpan. Lanjutkan ke WhatsApp untuk mengirimkannya ke kantin."
             : "Your order summary is saved. Continue to WhatsApp to send it to the canteen."}
         </p>
-        <span className="wa-status-ref">{order.reference}</span>
+        <a className="btn wa-status-cta" href={order.waUrl}>
+          <Icon name="whatsapp" />
+          <span>{lang === "id" ? "Buka WhatsApp" : "Open WhatsApp"}</span>
+        </a>
       </section>
 
       <div className="status-details wa-status-details">
@@ -96,7 +91,7 @@ export default function WhatsAppStatusPage() {
           {order.items.map((item, index) => (
             <div className="status-detail-line" key={`${item.menuId}-${index}`}>
               <span>
-                {localized(item.name, lang)} × {item.qty}
+                {localized(item.name, lang)} · {formatIDR(item.price)} × {item.qty}
                 {item.optionsLabel ? <em>{item.optionsLabel}</em> : null}
                 {item.note ? <em>{item.note}</em> : null}
               </span>
@@ -114,21 +109,11 @@ export default function WhatsAppStatusPage() {
       </div>
 
       <div className="status-actions">
-        <a className="btn btn-primary" href={order.waUrl}>
-          <Icon name="whatsapp" />
-          <span>{lang === "id" ? "Buka WhatsApp" : "Open WhatsApp"}</span>
-        </a>
-        {order.payment === "QRIS" ? (
-          <a className="btn btn-outline" href={`/api/qris?amount=${order.total}&download=1`} download={`qris-kantinmini-${order.total}.png`}>
-            <Icon name="download" />
-            <span>{lang === "id" ? "Unduh QR" : "Download QR"}</span>
-          </a>
-        ) : null}
         <button className="btn btn-outline" type="button" onClick={() => window.print()}>
           <Icon name="printer" />
           <span>{t("status.print")}</span>
         </button>
-        <Link className="btn btn-outline" href="/order">{t("status.newOrder")}</Link>
+        <Link className="btn btn-primary" href="/order">{t("status.newOrder")}</Link>
       </div>
 
       <div className="receipt-print print-area" aria-hidden="true">
@@ -137,7 +122,6 @@ export default function WhatsAppStatusPage() {
           <p className="receipt-sub">{site?.address || "Gang Melong Kaler I no. 1"}</p>
           <p className="receipt-sub">{t("receipt.customer")}</p>
           <hr />
-          <div className="receipt-line"><span>{lang === "id" ? "Referensi" : "Reference"}</span><span>{order.reference}</span></div>
           <div className="receipt-line"><span>{t("label.type")}</span><span>{typeLabel}</span></div>
           <div className="receipt-line"><span>{t("label.customer")}</span><span>{order.customer}</span></div>
           <div className="receipt-line"><span>{timeLabel}</span><span>{order.time}</span></div>
@@ -146,7 +130,7 @@ export default function WhatsAppStatusPage() {
           {order.items.map((item, index) => (
             <div className="receipt-line" key={`${item.menuId}-print-${index}`}>
               <span>
-                {localized(item.name, lang)} × {item.qty}
+                {localized(item.name, lang)} ({formatIDR(item.price)} × {item.qty})
                 {item.optionsLabel ? <><br /><small>{item.optionsLabel}</small></> : null}
                 {item.note ? <><br /><small>{item.note}</small></> : null}
               </span>

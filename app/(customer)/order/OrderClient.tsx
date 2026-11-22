@@ -351,7 +351,9 @@ export function OrderClient({ initialMenu }: { initialMenu: MenuPayload }) {
         <div className="cart-bar is-visible" aria-live="polite">
           <div className="bar-inner">
             <div className="cart-bar-copy">
-              <span className="cart-bar-count">{cartCount}</span>
+              <span className="cart-bar-count" aria-hidden="true">
+                <Icon name="bag" />
+              </span>
               <span className="cart-bar-text">
                 <small>{t("common.items", { count: cartCount })}</small>
                 <strong>{formatIDR(cartTotal)}</strong>

@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/Icon";
 
 type Toast = { id: number; message: string; type: "success" | "error" | "info" };
@@ -9,14 +10,24 @@ type ToastContextValue = { toast: (message: string, type?: Toast["type"]) => voi
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timersRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    timersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    timersRef.current = [];
+    setToasts([]);
+  }, [pathname]);
 
   const toast = useCallback((message: string, type: Toast["type"] = "success") => {
     const id = Date.now() + Math.random();
     setToasts((current) => [...current, { id, message, type }]);
-    window.setTimeout(() => {
+    const timerId = window.setTimeout(() => {
       setToasts((current) => current.filter((item) => item.id !== id));
+      timersRef.current = timersRef.current.filter((entry) => entry !== timerId);
     }, 3200);
+    timersRef.current.push(timerId);
   }, []);
 
   const value = useMemo(() => ({ toast }), [toast]);
